@@ -1,0 +1,10 @@
+.vs
+.vscode
+interpret
+*.vcxproj
+*.zip
+*.exe
+*.o
+main
+vgcore.*
+out
