@@ -416,7 +416,15 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
             else { src1 = g_cast(int2float, src1, l1, s1, &l1, &s1); src2 = g_cast(int2float, src2, l2, s2, &l2, &s2); }
             fprintf(out, "DIV "); target->dtype = d_double;
         } else if (strcmp(tree->value.v_string, "\\") == 0) {
-            src1 = g_cast(int2float, src1, l1, s1, &l1, &s1); src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
+
+            // Pokud je některý double, zaokrouhli na int
+            if (src1->ntype == n_var) {frame_level = l1; g_castif(float2r2eint, src1, s1);} else if (src1->dtype == d_double) {src1 = g_cast(float2r2eint, src1, l1, s1, &l1, &s1);} 
+            if (src2->ntype == n_var) {frame_level = l2; g_castif(float2r2eint, src2, s2);} else if (src2->dtype == d_double) {src2 = g_cast(float2r2eint, src2, l2, s2, &l2, &s2);} 
+
+            // Pro dělení, převeď na float
+            if (src1->ntype == n_var) {frame_level = l1; g_castif(int2float, src1, s1);} else if (src1->dtype == d_int) {src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);} 
+            if (src2->ntype == n_var) {frame_level = l2; g_castif(int2float, src2, s2);} else if (src2->dtype == d_int) {src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);} 
+
             fprintf(out, "DIV ");
             target->dtype = d_double;
             frame_level = *src_frame;

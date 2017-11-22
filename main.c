@@ -21,9 +21,9 @@ int main()
 	Ladd(&list, STcreateExpr(var2, "=", STcreateExpr(
 		var1,
 		"\\",
-		STcreateIntConst(12)
+		STcreateDoubleConst(3.12)
 	)));
-	Ladd(&list, STcreatePrint(STcreateVar("test_var2", d_double)));
+	Ladd(&list, STcreatePrint(var2));
 
 	// RETURN FUNCTION
 	s_stree fc_var = STcreateVar("fc_var", d_int);
