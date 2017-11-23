@@ -353,7 +353,8 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
             sprintf(vname,"%s%d", vname, sysv_next_id++); 
             src1 = STcreateVar(vname, d_int); 
             s1 = 1;
-            l1 = f_temporary;
+            l1 = f_local;
+            //l1 = f_temporary;
             frame_level = l1;
             g_var(src1, s1);
             g_pop(src1, s1);
@@ -368,19 +369,21 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
             sprintf(vname,"%s%d", vname, sysv_next_id++);  
             src2 = STcreateVar(vname, d_int);
             s2 = 1;
-            l2 = f_temporary;
+            l2 = f_local;
+            //l2 = f_temporary;
             frame_level = l2;
             g_var(src2, s2);
             g_pop(src2, s2);
             frame_level = bl;
         }
 
-        frame_level = f_temporary;
+        *src_frame = f_local;
+        //*src_frame = f_temporary;
+        frame_level = *src_frame;
         char vname[10] = "tmp_";    
         sprintf(vname,"%s%d", vname, sysv_next_id++);       
         target = STcreateVar(vname, d_int);
         *s = 1;
-        *src_frame = frame_level;
         g_var(target, *s);
         frame_level = bl;
 
@@ -491,8 +494,9 @@ s_stree g_cast(g_cast_type ct, s_stree dst, g_frame_level dst_l, int dst_s, g_fr
         sprintf(vname,"%s%d", vname, sysv_next_id++);       
         target = STcreateVar(vname, d_int);
         target_l = frame_level;
-        frame_level = f_temporary;
-        *t_l = f_temporary;
+        *t_l = f_local;
+        //*t_l = f_temporary;
+        frame_level = *t_l;
         *t_s = 1;
         g_var(target, *t_s);
         frame_level = target_l;
@@ -556,16 +560,17 @@ s_stree g_cast_full(g_cast_type ct, s_stree dst, g_frame_level dst_l, int dst_s,
 void g_castif(g_cast_type type, s_stree tree, int system)
 {
     g_frame_level bl = frame_level;
-    frame_level = f_temporary;
+    frame_level = f_local;  // při změně změnit LF@%s => TF@%s
+    //frame_level = f_temporary;
     char vname[10] = "tmp_";    
     sprintf(vname,"%s%d", vname, sysv_next_id++);       
     s_stree tmp = STcreateVar(vname, d_string);
     g_var(tmp, 1);
     frame_level = bl;
-    fprintf(out, "TYPE TF@%s ", tmp->value.v_string);
+    fprintf(out, "TYPE LF@%s ", tmp->value.v_string);
     g_value(tree, system);
     fprintf(out, "\n");
-    fprintf(out, "JUMPIFNEQ cast_if_%d TF@%s string@", cfs_next_id++, tmp->value.v_string);
+    fprintf(out, "JUMPIFNEQ cast_if_%d LF@%s string@", cfs_next_id++, tmp->value.v_string);
 
     if (type == int2char || type == int2float) {
         fprintf(out, "int");
@@ -630,7 +635,8 @@ void g_return(s_stree tree)
         sprintf(vname,"%s%d", vname, sysv_next_id++);       
         returning_node = STcreateVar(vname, d_int);
         ret_s = 1;
-        ret_l = f_temporary;
+        ret_l = f_local;
+        //ret_l = f_temporary;
         frame_level = ret_l;
         g_var(returning_node, ret_s);
         g_pop(returning_node, ret_s);
@@ -821,7 +827,8 @@ void g_print(s_stree tree, int system)
         sprintf(vname,"%s%d", vname, sysv_next_id++);       
         r_var = STcreateVar(vname, d_int);
         system = 1;
-        l = f_temporary;
+        l = f_local;
+        //l = f_temporary;
         frame_level = l;
         g_var(r_var, system);
         g_pop(r_var, system);
