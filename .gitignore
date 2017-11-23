@@ -5,6 +5,7 @@ interpret
 *.zip
 *.exe
 *.o
+main.c
 main
 vgcore.*
 out
