@@ -7,7 +7,6 @@
 int main()
 {
     s_list list;
-	s_stree params;
 
 	s_stree var1 = STcreateVar("test_var", d_int);
 	s_stree var2 = STcreateVar("test_var2", d_int);
@@ -47,7 +46,7 @@ int main()
 	Ladd(&list, STcreateEndIf());
 	Ladd(&list, STcreateExpr(param1, "=", STcreateExpr(param1, "-", STcreateIntConst(1))));
 	Ladd(&list, STcreateReturn(STcreateExpr(
-		param1,
+		STcreateExpr(param1, "+", STcreateIntConst(1)),
 		"*",
 		STcreateCall("factorial", STcreateFirstParam(param1))
 	)));;

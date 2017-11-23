@@ -398,21 +398,21 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
             if (src1->dtype == d_string && src2->dtype == d_string) {
                 fprintf(out, "CONCAT "); target->dtype = d_string;
             } else {
-                if (src1->dtype == d_double && src2->dtype == d_int) src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
-                else if (src1->dtype = d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
+                if (src1->dtype == d_double && src2->dtype == d_int) {src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);}
+                else if (src1->dtype == d_int && src2->dtype == d_double) {src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);}
                 fprintf(out, "ADD "); target->dtype = src1->dtype;
             }
         } else if (strcmp(tree->value.v_string, "-") == 0) {
             if (src1->dtype == d_double && src2->dtype == d_int) src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
-            else if (src1->dtype = d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
+            else if (src1->dtype == d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
             fprintf(out, "SUB "); target->dtype = src1->dtype;
         } else if (strcmp(tree->value.v_string, "*") == 0) {            
             if (src1->dtype == d_double && src2->dtype == d_int) src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
-            else if (src1->dtype = d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
+            else if (src1->dtype == d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
             fprintf(out, "MUL "); target->dtype = src1->dtype;
         } else if (strcmp(tree->value.v_string, "/") == 0) {
             if (src1->dtype == d_double && src2->dtype == d_int) src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
-            else if (src1->dtype = d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
+            else if (src1->dtype == d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
             else { src1 = g_cast(int2float, src1, l1, s1, &l1, &s1); src2 = g_cast(int2float, src2, l2, s2, &l2, &s2); }
             fprintf(out, "DIV "); target->dtype = d_double;
         } else if (strcmp(tree->value.v_string, "\\") == 0) {
@@ -459,12 +459,12 @@ void g_move(s_stree dest, int sd, s_stree src, int sr)
 
 void g_move_frames(s_stree dest, g_frame_level dl, int sd, s_stree src, g_frame_level sl, int sr)
 {
+    g_frame_level back = frame_level;
     fprintf(out, "MOVE ");
+    frame_level = dl;
     g_value(dest, sd);
     
     fprintf(out, " ");
-
-    g_frame_level back = frame_level;
 
     frame_level = sl;
     g_value(src, sr);
@@ -534,6 +534,10 @@ s_stree g_cast_full(g_cast_type ct, s_stree dst, g_frame_level dst_l, int dst_s,
         case int2char: {            
             fprintf(out, "INT2CHAR ");
             dst->dtype = d_string;
+            break;
+        }
+
+        default: {
             break;
         }
     }
@@ -650,6 +654,8 @@ void g_return(s_stree tree)
 
 void g_func_end(s_stree tree)
 {  
+    (void) tree;
+
     if (tree != NULL) {
         fprintf(out, "LABEL fce_%s\n", tree->value.v_string);
     }
@@ -705,6 +711,8 @@ void g_cond(s_stree tree)
 
 void g_cond_else(s_stree tree)
 {
+    (void) tree;
+
     gStackItem item = gs_top(stack);
     item->has_else = 1;
 
@@ -714,6 +722,8 @@ void g_cond_else(s_stree tree)
 
 void g_cond_end(s_stree tree)
 {
+    (void) tree;
+
     gStackItem item = gs_top(stack);
     if (item == NULL) {
         g_errno = G_ERROR_STACK;
@@ -756,6 +766,8 @@ void g_loop(s_stree tree)
 
 void g_loop_end(s_stree tree)
 {
+    (void) tree;
+
     gStackItem item = gs_top(stack);
     if (item == NULL) {
         g_errno = G_ERROR_STACK;
@@ -787,6 +799,10 @@ void g_value(s_stree tree, int system)
             (frame_level == f_global) ? fprintf(out, "GF@") : (frame_level == f_local ? fprintf(out, "LF@") : fprintf(out, "TF@"));
             if (!system) fprintf(out, "v_");
             fprintf(out, "%s", tree->value.v_string);
+            break;
+        }
+
+        default: {
             break;
         }
     }
@@ -842,6 +858,10 @@ void g_read(s_stree tree, int system)
 
         case d_double: {
             fprintf(out, " float");
+            break;
+        }
+
+        default: {
             break;
         }
     }

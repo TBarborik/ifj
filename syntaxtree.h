@@ -8,7 +8,7 @@ typedef enum{
 
 //datovy typ
 typedef enum{
-	d_undef, d_viod, d_bool, d_int, d_double, d_string
+	d_undef, d_void, d_bool, d_int, d_double, d_string
 }	e_dstype;
 
 //hodnota (bud podle e_dstype, nebo napevno receno)

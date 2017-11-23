@@ -1,4 +1,4 @@
-CFLAGS = -ansi -pedantic -std=c99 -Wextra
+CFLAGS = -ansi -pedantic -std=c99 -Wextra -Wall
 HFILES = string.h stack.h syntaxtree.h generator.h
 OFILES = main.o string.o stack.o syntaxtree.o generator.o
 CC = gcc
