@@ -5,6 +5,8 @@
 #define DEBUG 0
 #endif
 
+#define S_EQ(d, w) strcmp((d), (w)) == 0
+
 // INTERNAL //
 
 typedef enum {
@@ -82,6 +84,7 @@ void g_var(s_stree, int);
 s_stree g_cast(g_cast_type, s_stree, g_frame_level, int, g_frame_level *, int *);
 s_stree g_cast_full(g_cast_type, s_stree, g_frame_level, int, s_stree, g_frame_level, int);
 void g_castif(g_cast_type, s_stree, int);
+s_stree g_castif_full(g_cast_type, s_stree, int, g_frame_level, s_stree, int, g_frame_level, int *, g_frame_level *);
 void g_pop(s_stree, int);
 void g_push(s_stree, int);
 void g_move(s_stree, int, s_stree, int);
@@ -100,6 +103,7 @@ void g_loop_end(s_stree);
 void g_value(s_stree, int);
 void g_print(s_stree, int);
 void g_read(s_stree, int);
+s_stree g_tmp(g_frame_level, e_dstype);
 
 
 gStack gs_init();
@@ -387,38 +391,47 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
         g_var(target, *s);
         frame_level = bl;
 
-        if (strcmp(tree->value.v_string, "==") == 0) {
+        char *oper = tree->value.v_string;
+
+        if ((S_EQ(oper, "+") && src1->dtype != d_string) || S_EQ(oper, "-") || S_EQ(oper, "*")) {
+            // konstanta + proměnná přetyp na vyšší typ
+            // podle konstanty
+            if (src1->ntype == n_const && src1->dtype == d_double && src2->ntype == n_var) {
+                g_castif(int2float, src2, s2); 
+            } else if (src2->ntype == n_const && src2->dtype == d_double && src1->ntype == n_var) { 
+                g_castif(int2float, src1, s1); 
+            } else {
+                src1 = g_castif_full(int2float, src1, s1, l1, src2, s2, l2, &s1, &l1);
+                src2 = g_castif_full(int2float, src2, s2, l2, src1, s1, l1, &s2, &l2);
+            }
+        }
+
+        if (S_EQ(oper, "==")) {
             fprintf(out, "EQ "); target->dtype = d_bool;
-        } else if (strcmp(tree->value.v_string, ">") == 0) {
+        } else if (S_EQ(oper, ">")) {
             fprintf(out, "GT "); target->dtype = d_bool;
-        } else if (strcmp(tree->value.v_string, "<") == 0) {
+        } else if (S_EQ(oper, "<")) {
             fprintf(out, "LT "); target->dtype = d_bool;
-        } else if (strcmp(tree->value.v_string, "AND") == 0 || strcmp(tree->value.v_string, "&&") == 0) {
+        } else if (S_EQ(oper, "AND") || S_EQ(oper, "&&")) {
             fprintf(out, "AND "); target->dtype = d_bool;
-        } else if (strcmp(tree->value.v_string, "OR") == 0 || strcmp(tree->value.v_string, "||") == 0) {
+        } else if (S_EQ(oper, "OR") || S_EQ(oper, "||")) {
             fprintf(out, "OR "); target->dtype = d_bool;
-        } else if (strcmp(tree->value.v_string, "+") == 0) {
+        } else if (S_EQ(oper, "+")) {
             if (src1->dtype == d_string && src2->dtype == d_string) {
                 fprintf(out, "CONCAT "); target->dtype = d_string;
             } else {
-                if (src1->dtype == d_double && src2->dtype == d_int) {src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);}
-                else if (src1->dtype == d_int && src2->dtype == d_double) {src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);}
                 fprintf(out, "ADD "); target->dtype = src1->dtype;
             }
-        } else if (strcmp(tree->value.v_string, "-") == 0) {
-            if (src1->dtype == d_double && src2->dtype == d_int) src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
-            else if (src1->dtype == d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
+        } else if (S_EQ(oper, "-")) {
             fprintf(out, "SUB "); target->dtype = src1->dtype;
-        } else if (strcmp(tree->value.v_string, "*") == 0) {            
-            if (src1->dtype == d_double && src2->dtype == d_int) src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
-            else if (src1->dtype == d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
+        } else if (S_EQ(oper, "*")) {            
             fprintf(out, "MUL "); target->dtype = src1->dtype;
-        } else if (strcmp(tree->value.v_string, "/") == 0) {
+        } else if (S_EQ(oper, "/")) {
             if (src1->dtype == d_double && src2->dtype == d_int) src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
             else if (src1->dtype == d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
             else { src1 = g_cast(int2float, src1, l1, s1, &l1, &s1); src2 = g_cast(int2float, src2, l2, s2, &l2, &s2); }
             fprintf(out, "DIV "); target->dtype = d_double;
-        } else if (strcmp(tree->value.v_string, "\\") == 0) {
+        } else if (S_EQ(oper, "\\")) {
 
             // Pokud je některý double, zaokrouhli na int
             if (src1->ntype == n_var) {frame_level = l1; g_castif(float2r2eint, src1, s1);} else if (src1->dtype == d_double) {src1 = g_cast(float2r2eint, src1, l1, s1, &l1, &s1);} 
@@ -585,6 +598,64 @@ void g_castif(g_cast_type type, s_stree tree, int system)
     fprintf(out, "LABEL cast_if_%d\n", cfs_next_id - 1);
 }
 
+
+s_stree g_castif_full(g_cast_type type, s_stree tree, int s, g_frame_level frame, s_stree cond, int cond_system, g_frame_level cond_frame, int *out_s, g_frame_level *out_l) 
+{
+    g_frame_level bl = frame_level;
+    g_frame_level tl = f_local;
+    frame_level = tl;  // při změně změnit LF@%s => TF@%s
+    //frame_level = f_temporary;
+    s_stree tmp = g_tmp(frame_level, d_string);       
+    frame_level = bl;
+
+    int cfs_id = cfs_next_id++;
+    s_stree out_t = tree;
+    *out_s = s;
+    *out_l = frame_level;
+
+    if (tree->ntype == n_const) {
+        *out_s = 1;
+        *out_l = f_local;
+        out_t = g_tmp(*out_l, d_double);
+        frame_level = *out_l;
+        g_move(out_t, 1, tree, 0);
+    }
+
+    fprintf(out, "TYPE "); frame_level = tl; g_value(tmp, 1); fprintf(out, " "); frame_level = cond_frame; g_value(cond, cond_system); fprintf(out, "\n");
+
+    if (type == int2float) {
+        fprintf(out, "JUMPIFNEQ cast_if_%d ", cfs_id); frame_level = tl; g_value(tmp, 1); fprintf(out, " string@float\n");
+        if (tree->ntype == n_const && tree->dtype == d_int) {
+            
+            fprintf(out, "INT2FLOAT ");
+            g_value(out_t, *out_s); fprintf(out, " ");
+            frame_level = frame; g_value(tree, s); fprintf(out, "\n");
+        } else if (tree->ntype == n_var) {
+            frame_level = frame;
+            g_castif(int2float, tree, s);
+        }
+    } else if (type == float2int || type == float2r2eint || type == float2r2eint) {
+        fprintf(out, "JUMPIFNEQ cast_if_%d ", cfs_id); frame_level = tl; g_value(tmp, 1); fprintf(out, " string@int\n");
+        if (tree->ntype == n_const && tree->dtype == d_double) {            
+            switch (type) {
+                case float2int: fprintf(out, "FLOAT2INT "); break; 
+                case float2r2eint: fprintf(out, "FLOAT2R2EINT "); break; 
+                case float2r2oint: fprintf(out, "FLOAT2R2OINT "); break;
+                default: break; 
+            }
+            g_value(out_t, *out_s); fprintf(out, " ");
+            frame_level = frame; g_value(tree, s); fprintf(out, "\n");
+        } else if (tree->ntype == n_var) {
+            frame_level = frame;
+            g_castif(type, tree, s);
+        }
+    }
+
+    fprintf(out, "LABEL cast_if_%d\n", cfs_id);
+    frame_level = bl;
+    return out_t;
+}
+
 void g_pop(s_stree tree, int s)
 {    
     fprintf(out, "POPS ");
@@ -615,6 +686,21 @@ void g_func_params(s_stree tree)
     while(tree != NULL) {
         g_var(tree->lptr, 0);
         g_pop(tree->lptr, 0);
+
+        switch (tree->lptr->dtype) {
+            case d_int: {
+                g_castif(float2r2eint, tree->lptr, 0);
+                break;
+            }
+            case d_double: {
+                g_castif(int2float, tree->lptr, 0);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+
         tree = tree->rptr;
     }
 }
@@ -689,7 +775,31 @@ void g_call_params(s_stree tree)
     }
 
     g_call_params(tree->rptr);
-    g_push(tree->lptr, 0);
+
+    s_stree node = tree->lptr;
+    int s = 0;
+    g_frame_level l = frame_level;
+    g_frame_level bl = frame_level;
+
+    if (node->ntype == n_expr) {
+        g_createTF();
+        node = g_expression(node, &s, &l);   
+    } else if (node->ntype == n_call) {
+        g_call(node);
+        char vname[10] = "tmp_";    
+        sprintf(vname,"%s%d", vname, sysv_next_id++);       
+        node = STcreateVar(vname, d_int);
+        s = 1;
+        l = f_local;
+        //ret_l = f_temporary;
+        frame_level = l;
+        g_var(node, s);
+        g_pop(node, s); 
+    }
+
+    frame_level = l;
+    g_push(node, s);
+    frame_level = bl;
 }
 
 void g_cond(s_stree tree)
@@ -874,6 +984,18 @@ void g_read(s_stree tree, int system)
     }
 
     fprintf(out, "\n");
+}
+
+s_stree g_tmp(g_frame_level frame, e_dstype type) 
+{
+    g_frame_level bl = frame_level;
+    frame_level = frame;
+    char vname[10] = "tmp_";    
+    sprintf(vname,"%s%d", vname, sysv_next_id++);       
+    s_stree tmp = STcreateVar(vname, type);
+    g_var(tmp, 1);
+    frame_level = bl;
+    return tmp;
 }
 
 void g_printlvl()

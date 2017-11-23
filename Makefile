@@ -6,6 +6,11 @@ CC = gcc
 main: $(OFILES)
 	$(CC) $(CFLAGS) -o $@ $(OFILES) && rm $(OFILES)
 
+mprint: main print
+
+print:
+	./main > out
+
 main.o: main.c $(HFILES)
 	$(CC) $(CFLAGS) -c main.c
 	
