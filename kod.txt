@@ -1,0 +1,15 @@
+Function factorial (n As Integer) As Double
+DiM b AS IntegEr
+DiM c AS Double
+
+if b > 5 THEN
+
+INPUT b
+end if
+
+End Function
+
+
+Scope
+
+End Scope

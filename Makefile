@@ -1,30 +1,37 @@
-CFLAGS = -ansi -pedantic -std=c99 -Wextra -Wall
-HFILES = string.h stack.h syntaxtree.h generator.h
-OFILES = main.o string.o stack.o syntaxtree.o generator.o
+CFLAGS = -ansi -pedantic -std=c99 -Wall -Wextra
+HFILES = string.h scanner.h generator.h syntaxtree.h stack.h parser.h symtable.h postfix.h
+OFILES = scanner.o string.o generator.o syntaxtree.o stack.o main.o parser.o symtable.o postfix.o
 CC = gcc
 
 main: $(OFILES)
-	$(CC) $(CFLAGS) -o $@ $(OFILES) && rm $(OFILES)
-
-mprint: main print
-
-print:
-	./main > out
-
+	$(CC) $(CFLAGS) -o main $(OFILES)
+	
 main.o: main.c $(HFILES)
 	$(CC) $(CFLAGS) -c main.c
+	
+scanner.o: scanner.c $(HFILES)
+	$(CC) $(CFLAGS) -c scanner.c
 	
 string.o: string.c $(HFILES)
 	$(CC) $(CFLAGS) -c string.c
 
+generator.o: generator.c $(HFILES)
+	$(CC) $(CFLAGS) -c generator.c
+	
+syntaxtree.o: syntaxtree.c $(HFILES)
+	$(CC) $(CFLAGS) -c syntaxtree.c
+	
 stack.o: stack.c $(HFILES)
 	$(CC) $(CFLAGS) -c stack.c
 
-generator.o: generator.c $(HFILES)
-	$(CC) $(CFLAGS) -c generator.c
+parser.o: parser.c $(HFILES)
+	$(CC) $(CFLAGS) -c parser.c
 
-syntaxtree.o: syntaxtree.c $(HFILES)
-	$(CC) $(CFLAGS) -c syntaxtree.c
+symtable.o: symtable.c $(HFILES)
+	$(CC) $(CFLAGS) -c symtable.c
 
+postfix.o: postfix.c $(HFILES)
+	$(CC) $(CFLAGS) -c postfix.c
+	
 clean:
 	rm $(OFILES)
