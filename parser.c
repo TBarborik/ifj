@@ -217,11 +217,8 @@ int func_f_dec_def()
 		token = scanner();
 		if (token == LEX_ERROR) return LEX_ERROR;
 		
-		if(token == M_ID)	//TODO!!!ID->kontrolovat tabulku symbolů
-		{
-/*			// pokud již byla funkce jednou definována jedná se o chybu
-			if (tableSearch(table, detail) != 1) return SEM_ERROR;
-*/						
+		if(token == M_ID)
+		{			
 
 			char *id = str_to_array(detail);
 			e_dtype type = d_void;
@@ -258,9 +255,7 @@ int func_f_dec_def()
 						{
 							token = scanner();
 							if (token == LEX_ERROR) return LEX_ERROR;
-
 							Ladd(&list, STcreateFunc(id, type, params));
-
 
 							BTinit(&t_symtable);
 
@@ -272,7 +267,7 @@ int func_f_dec_def()
 								t_params = t_params->rptr;
 							}
 
-							result = func_f_program();
+							result = func_f_program(id, type);
 							BTdispose(&t_symtable);
 							t_symtable = NULL;
 							if (result != SYNTAX_OK) return result;
@@ -291,24 +286,25 @@ int func_f_dec_def()
 									if (((resultTree = BTget(&g_symtable, id, &node)) == -1) || (resultTree == 0 && node->ntype == sn_func_dec)) { // nebyl nalezen nebo byl nalezen ale jenom deklarovan
 										if (resultTree == 0) {
 											s_stree dec_params = node->params;
+											s_stree t_params = params;
 
 
 											int param_result = node->dtype == type;
 											while(param_result) {
-												param_result = dec_params != NULL && params != NULL;
+												param_result = dec_params != NULL && t_params != NULL;
 											
 												if (!param_result) {
 													break;
 												}
 
-												param_result = dec_params->lptr->dtype == params->lptr->dtype;
+												param_result = dec_params->lptr->dtype == t_params->lptr->dtype;
 												if (param_result) {
 													dec_params = dec_params->rptr;
-													params = params->rptr;
+													t_params = t_params->rptr;
 												}
 											}
 
-											if (!param_result && dec_params != params) {
+											if (!param_result && dec_params != t_params) {
 												return SEMANTIC_ERROR;
 											}
 
@@ -366,7 +362,7 @@ int func_datatype(e_dtype *type)
 *	F_PROGRAM → &
 *	@return Kód propagující syntaktickou správnost či chybu
 */
-int func_f_program()
+int func_f_program(char *id, e_dtype type)
 {
 	int result;
 
@@ -375,7 +371,7 @@ int func_f_program()
 	{
 		return SYNTAX_OK;
 	}
-	result = func_f_p_def_stat();
+	result = func_f_p_def_stat(id, type);
 
 	if (result != SYNTAX_OK) return result;
 
@@ -394,7 +390,7 @@ int func_f_program()
 		token = scanner();
 		if (token == LEX_ERROR) return LEX_ERROR;
 
-		return func_f_program();
+		return func_f_program(id, type);
 	}
 
 	return SYNTAX_ERROR;	//Pokud neodpovídá derivačnímu stromu
@@ -445,7 +441,7 @@ int func_program()
 *	F_P_DEF_STAT → STAT_RET
 *	@return Kód propagující syntaktickou správnost či chybu
 */
-int func_f_p_def_stat()
+int func_f_p_def_stat(char *id, e_dtype type)
 {
 	int result;
 
@@ -465,7 +461,7 @@ int func_f_p_def_stat()
 	}
 	else if(token == M_RETURN)
 	{
-		result = func_stat_ret();
+		result = func_stat_ret(id, type);
 		if (result != SYNTAX_OK) return result;
 
 		return SYNTAX_OK;
@@ -642,7 +638,6 @@ int func_param_list(s_stree *params)
 		return SYNTAX_OK;
 	}
 
-
 	if(token == M_ID)	//TODO!!!ID->kontrolovat tabulku symbolů
 	{
 		char *id = str_to_array(detail);
@@ -658,15 +653,15 @@ int func_param_list(s_stree *params)
 			if (token == LEX_ERROR) return LEX_ERROR;
 
 			result = func_datatype(&type);
-			if(result != SYNTAX_OK) return SYNTAX_ERROR;
+			if(result != SYNTAX_OK) return result;
 
+			*params = STcreateFirstParam(STcreateVar(id, type));
+			
 			token = scanner();
 			if (token == LEX_ERROR) return LEX_ERROR;
 
-			*params = STcreateFirstParam(STcreateVar(id, type));
-
 			result = func_param_n(params);
-			if(result != SYNTAX_OK) return SYNTAX_ERROR;
+			if(result != SYNTAX_OK) return result;
 
 			return SYNTAX_OK;
 		}
@@ -707,7 +702,7 @@ int func_param_n(s_stree *params)
 				if (token == LEX_ERROR) return LEX_ERROR;
 
 				result = func_datatype(&type);
-				if(result != SYNTAX_OK) return SYNTAX_ERROR;
+				if(result != SYNTAX_OK) return result;
 
 				STaddNextParam(*params, STcreateVar(id, type));
 
@@ -802,7 +797,7 @@ int func_stat()
 		if(token == M_SEMICOLON)
 		{	
 			result = func_expr_n();
-			if(result != SYNTAX_OK) return SYNTAX_ERROR;
+			if(result != SYNTAX_OK) return result;
 
 			return SYNTAX_OK;
 		}
@@ -828,10 +823,10 @@ int func_stat()
 				if (token == LEX_ERROR) return LEX_ERROR;
 
 				result = func_stat_list_if();
-				if(result != SYNTAX_OK) return SYNTAX_ERROR;
+				if(result != SYNTAX_OK) return result;
 
 				result = func_stat_else();
-				if(result != SYNTAX_OK) return SYNTAX_ERROR;
+				if(result != SYNTAX_OK) return result;
 
 				if(token == M_END)
 				{
@@ -871,7 +866,7 @@ int func_stat()
 				if (token == LEX_ERROR) return LEX_ERROR;
 				result = func_stat_list_while();
 				//printf(">> %s\n", str_to_array(detail));
-				if(result != SYNTAX_OK) return SYNTAX_ERROR;
+				if(result != SYNTAX_OK) return result;
 
 				if(token == M_LOOP)
 				{
@@ -926,6 +921,36 @@ int func_stat_exfu(char *dest, e_dstype type)
 				"asg",
 				STcreateCall(id, params)
 			));
+
+			switch (node2->dtype) {
+				case sd_int: {
+					if (type == d_string)
+						return SEMANTIC_ERROR;
+					if (type == d_double)
+						Ladd(&list, STcreateInt2Float(STcreateVar(dest, type)));
+
+					break;
+				}
+
+				case sd_double: {
+					if (type == d_string)
+						return SEMANTIC_ERROR;
+					if (type == d_int)
+					Ladd(&list, STcreateFloat2Int(STcreateVar(dest, type)));
+					break;
+				}
+
+				case sd_string: {
+					if (type != d_string)
+						return SEMANTIC_ERROR;
+					break;
+				}
+
+				default: {
+					return SEMANTIC_ERROR;
+				}
+			}
+
 			eol_flag = 0;
 
 			return SYNTAX_OK;
@@ -940,6 +965,35 @@ int func_stat_exfu(char *dest, e_dstype type)
 
 			Ladd(&list, STcreateExpr(STcreateVar(dest, node->dtype), "asg", expr_result));
 	
+			switch (expr_result->dtype) {
+				case d_int: {
+					if (type == d_string)
+						return SEMANTIC_ERROR;
+					if (type == d_double)
+						Ladd(&list, STcreateInt2Float(STcreateVar(dest, node->dtype)));
+
+					break;
+				}
+
+				case d_double: {
+					if (type == d_string)
+						return SEMANTIC_ERROR;
+					if (type == d_int)
+					Ladd(&list, STcreateFloat2Int(STcreateVar(dest, node->dtype)));
+					break;
+				}
+
+				case d_string: {
+					if (type != d_string)
+						return SEMANTIC_ERROR;
+					break;
+				}
+
+				default: {
+					return SEMANTIC_ERROR;
+				}
+			}
+
 			eol_flag = 1;
 
 			return SYNTAX_OK;
@@ -1127,7 +1181,7 @@ int func_stat_else()
 			if (token == LEX_ERROR) return LEX_ERROR;
 
 			result = func_stat_list_else();
-			if(result != SYNTAX_OK) return SYNTAX_ERROR;
+			if(result != SYNTAX_OK) return result;
 
 			return SYNTAX_OK;
 		}
@@ -1140,9 +1194,10 @@ int func_stat_else()
 *	STAT_RET → &
 *	@return Kód propagující syntaktickou správnost či chybu
 */
-int func_stat_ret()
+int func_stat_ret(char *id, e_dtype type)
 {
 	int result;
+	(void) id;
 
 	if(token == M_RETURN)
 	{
@@ -1151,12 +1206,36 @@ int func_stat_ret()
 		result = expr_analyse(&expr_result, 2);
 		if(result != SYNTAX_OK) return result;
 
+		if ((expr_result->dtype == d_string && type != sd_string) || (expr_result->dtype != d_string && type == sd_string))
+			return SEMANTIC_ERROR;
+		
+		switch(expr_result->dtype) {
+			case d_int: {
+				if (expr_result->ntype == n_const && type == sd_double) expr_result = STcreateDoubleConst(expr_result->value.v_int);
+				if (expr_result->ntype == n_var && type == sd_double) Ladd(&list, STcreateInt2Float(STcreateVar(expr_result->value.v_string, expr_result->dtype)));
+				break;
+			}
+
+			case d_double: {
+				if (expr_result->ntype == n_var && type == sd_int) Ladd(&list, STcreateFloat2Int(STcreateVar(expr_result->value.v_string, expr_result->dtype)));
+				break;
+			}
+
+			case d_string: {
+				break;
+			}
+			default: {
+				return SEMANTIC_ERROR;
+			}
+		}
+
 		Ladd(&list, STcreateReturn(expr_result));
 
 		eol_flag = 1;
 
 		return SYNTAX_OK;
 	}
+
 	return SYNTAX_ERROR;
 }
 
@@ -1275,16 +1354,12 @@ int func_in_param_n(s_stree *params, s_stree f_params)
 				}
 			}
 
-			token = scanner();
-			if (token == LEX_ERROR) return LEX_ERROR;
-
 			return func_in_param_n(params, f_params->rptr);
 		}
 		else if(token == M_ID)
 		{
+			
 			char *id = str_to_array(detail);
-			token = scanner();		
-			if (token == LEX_ERROR) return LEX_ERROR;
 	
 			s_btree node;
 			int r = BTget(&t_symtable, id, &node);
@@ -1293,10 +1368,7 @@ int func_in_param_n(s_stree *params, s_stree f_params)
 				return SEMANTIC_ERROR;
 
 			STaddNextParam(*params, STcreateVar(id, node->dtype));
-			//!!!Kontrola ID v tabulce symbolů
-			token = scanner();
-			if (token == LEX_ERROR) return LEX_ERROR;
-			
+	
 			return func_in_param_n(params, f_params->rptr);
 		}
 	}

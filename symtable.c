@@ -170,8 +170,6 @@ int BTdelete(s_btree *root, const char *key)
 			else
 				*root=pom->rptr;
 			
-			if (pom->params != NULL)
-				free(pom->params);
 			free(pom->key);
 			free(pom);
 			return 0;
@@ -208,8 +206,6 @@ int BTdispose(s_btree *root)
 			else
 				*root=pom->rptr;
 			
-			if (pom->params != NULL)
-				free(pom->params);
 			free(pom->key);
 			free(pom);
 		}
