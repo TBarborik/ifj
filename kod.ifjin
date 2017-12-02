@@ -18,9 +18,15 @@ Function test ( a as Integer ) as Integer
     return a * 2
 End Function
 
+Function test2 ( a as String ) as String
+    return a + a
+End Function
+
 Scope
     Dim a As Integer
     Dim vysl As Integer
+    DIM str AS string = !"Tom"
+
     Print !"Zadejte cislo pro vypocet faktorialu";
     Input a
     If a < 0 Then
@@ -36,4 +42,12 @@ Scope
         a = a - 1.5
         PRINT vysl;
     LOOP
+
+    a = 4
+    DO WHILE a > 0
+        str = test2(str)
+        a = a - 1
+    LOOP
+    PRINT str;
+    
 End Scope
