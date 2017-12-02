@@ -3,7 +3,7 @@
 
 //typ uzlu
 typedef enum{
-	n_const, n_var, n_expr, n_func, n_endfunc, n_call, n_param, n_return, n_if, n_else, n_endif, n_while, n_endwhile, n_print, n_read
+	n_const, n_var, n_expr, n_func, n_endfunc, n_call, n_param, n_return, n_if, n_else, n_endif, n_while, n_endwhile, n_print, n_read, n_i2f, n_f2i
 } e_nstype;
 
 //datovy typ
@@ -275,6 +275,10 @@ lptr = NULL
 rptr = promenna (uzel typu var)
 */
 s_stree STcreateRead(s_stree var);
+
+s_stree STcreateInt2Float(s_stree);
+
+s_stree STcreateFloat2Int(s_stree);
 
 // ********** DEFINICE SEZNAMU **********
 

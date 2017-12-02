@@ -9,9 +9,9 @@ typedef enum{
 } e_ntype;
 
 //Datovy typ
-typedef enum {
-	sd_int, sd_double, sd_string, sd_void
-} e_dtype;
+typedef enum{
+	sd_undef, sd_void, sd_bool, sd_int, sd_double, sd_string
+}	e_dtype;
 
 typedef struct {
 	e_dtype type;

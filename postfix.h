@@ -12,6 +12,7 @@
 
 typedef struct _expression{
 	string *elements;
+	int *types;
 	int number;
 }*Pexpression;
 
@@ -23,12 +24,16 @@ int detailToToken(string detail);
 
 Pexpression initExpression();
 
-void addToExpr(Pexpression expression, string element);
+void addToExpr(Pexpression expression, string element, int type);
 
 int priority(string operator);
 
 int isPossibleToken(int flag, int token);
 
-int infixToPostfix(Pexpression *expression);
+int infixToPostfix(Pexpression *expression, int);
+
+int removeElement(Pexpression expression, int index);
+
+int isLoginOperation(const char *oper);
 
 #endif

@@ -129,7 +129,7 @@ int scanner(){
 					break;
 				}
 				
-				else if (c == 9 || c == 11 || c == 12 || c == 13	|| c == 32){
+				else if (c == 9 || c == 11 || c == 12 || c == 13 || c == 32){
 					state = START;
 					id = 1;
 				}
@@ -150,7 +150,7 @@ int scanner(){
 					break;
 				}
 				
-				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == '=' || c == '\n' || c == ',' || c == '(' || c == ')'){
+				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == '='  || c == ';' || c == '\n' || c == ',' || c == '(' || c == ')'){
 					state = START;
 					id = 1;
 					symbol = c;
@@ -196,7 +196,7 @@ int scanner(){
 					break;
 				}
 				
-				else if (c == '+' || c == '-' || c == '*' || c == '\n' || c == '\\' || c == '=' || c == ',' || c == '(' || c == ')'){
+				else if (c == '+' || c == '-' || c == '*' || c == '\n' || c == '\\' || c == '=' || c == ';' || c == ',' || c == '(' || c == ')'){
 					state = START;
 					id = 2;
 					symbol = c;
@@ -266,7 +266,7 @@ int scanner(){
 					break;
 				}
 				
-				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == '=' || c == '\n' ){
+				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == '='  || c == ';' || c == '\n' ){
 					state = START;
 					id = 3;
 					symbol = c;
@@ -319,7 +319,7 @@ int scanner(){
 					break;
 				}
 				
-				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == ',' || c == '=' || c == '\n'){
+				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == ','  || c == ';' || c == '=' || c == '\n'){
 					state = START;
 					id = 3;
 					symbol = c;

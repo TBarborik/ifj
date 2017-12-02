@@ -1,14 +1,9 @@
-/*
-TODO: Nutno vybrat správné hlavičkové soubory
-*/
 #include "parser.h"
 
 #define SYMTABLE_ERROR 41
+#define scan token = scanner(); if (token == LEX_ERROR) return LEX_ERROR;
 
-/*
-TODO: Nutno doimplementovat precedenční analýzu
-*/
-int prec_analyse();
+int expr_analyse(s_stree*, int);
 int parse();
 
 int token;  //Uložení aktualního tokenu ze vstupu
@@ -30,6 +25,15 @@ TODO: Nutno dokončit vkládání do derivační tabulky pro generování mezik�
 TODO: Ověřit ve funkci func_stat_exfu správné použití knihovny STRING
 */
 
+
+
+int strToInt(const char *str) {
+	return atoi(str);
+}
+
+double strToDouble(const char *str) {
+	return strtod(str, NULL);
+}
 
 /**
 *	START → <F_DEC_DEF_LIST> BODY EOF
@@ -279,6 +283,7 @@ int func_f_dec_def()
 								if(token == M_FUNCTION)
 								{
 									Ladd(&list,STcreateEndFunc());
+									eol_flag = 0;
 
 									s_btree node;
 									int resultTree = 1;
@@ -512,7 +517,7 @@ int func_p_definition()
 				token = scanner();
 				if (token == LEX_ERROR) return LEX_ERROR;
 
-				result = func_assign();
+				result = func_assign(id, type);
 				if (result != SYNTAX_OK) return result;
 
 				return SYNTAX_OK;
@@ -528,24 +533,68 @@ int func_p_definition()
 *	ASSIGN → &
 *	@return Kód propagující syntaktickou správnost či chybu
 */
-int func_assign()
+int func_assign(char *id, e_dtype type)
 {
 	int result;
 
-	if(token == M_EOL)
+	if(token == M_EOL) // podle typu se inicializuje na default. hodnotu
 	{
+		switch (type) {
+			case sd_int: {
+				Ladd(&list, STcreateExpr(STcreateVar(id, d_int), "asg", STcreateIntConst(0)));
+				break;
+			}
+			case sd_double: {
+				Ladd(&list, STcreateExpr(STcreateVar(id, d_double), "asg", STcreateDoubleConst(0.0)));
+				break;
+			}
+			case sd_string: {
+				Ladd(&list, STcreateExpr(STcreateVar(id, d_string), "asg", STcreateStringConst("")));
+				break;
+			}
+			default: {
+				break;
+			}
+		}
+		
 		eol_flag = 1;
 		return SYNTAX_OK;
 	}
 
 	if(token == M_EQUAL)
 	{
-		token = scanner();
-		if (token == LEX_ERROR) return LEX_ERROR;
+		s_stree expr_result;
+		result = expr_analyse(&expr_result, 2);
+		if(result != SYNTAX_OK) return result;
 
-		s_stree prec_result;
-		result = prec_analyse(&prec_result);
-		if(result != SYNTAX_OK) return SYNTAX_ERROR;
+		if (expr_result->dtype == d_string && type != sd_string)
+			return SEMANTIC_ERROR;
+
+		Ladd(&list, STcreateExpr(STcreateVar(id, type), "asg", expr_result));
+
+		switch (expr_result->dtype) {
+			case d_int: {
+				if (type == sd_double)
+					Ladd(&list, STcreateInt2Float(STcreateVar(id, d_double)));
+				break;
+			}
+			
+			case d_double: {
+				if (type == sd_int)
+					Ladd(&list, STcreateFloat2Int(STcreateVar(id, d_int)));
+				break;
+			}
+
+			case d_string: {
+				break;
+			}
+
+			default: {
+				return SEMANTIC_ERROR;
+			}
+		}
+
+		eol_flag = 1;
 
 		return SYNTAX_OK;
 	}
@@ -576,7 +625,6 @@ int func_p_def_stat()
 
 		return SYNTAX_OK;
 	}
-
 	return SYNTAX_ERROR;	//Pokud neodpovídá derivačnímu stromu
 }
 
@@ -684,19 +732,29 @@ int func_param_n(s_stree *params)
 int func_stat()
 {
 	int result;
+	
+	//printf("%s = %d<<\n", str_to_array(detail), token);
+	
 
 	if(token == M_ID)	//TODO!!!ID->kontrolovat tabulku symbolů
 	{
+		char *id = str_to_array(detail);
+		
 		token = scanner();
 		if (token == LEX_ERROR) return LEX_ERROR;
+
+
+		s_btree node;
+		if (BTget(&t_symtable, id, &node) != 0)
+			return SEMANTIC_ERROR;
 
 		if(token == M_EQUAL)
 		{	
 			token = scanner();
 			if (token == LEX_ERROR) return LEX_ERROR;
 
-			result = func_stat_exfu();
-			if(result != SYNTAX_OK) return SYNTAX_ERROR;
+			result = func_stat_exfu(id, node->dtype);
+			if(result != SYNTAX_OK) return result;
 
 			return SYNTAX_OK;
 		}
@@ -706,11 +764,11 @@ int func_stat()
 		token = scanner();
 		if (token == LEX_ERROR) return LEX_ERROR;
 
-		if(token == M_ID)	//TODO!!!ID->kontrolovat tabulku symbolů
+		if(token == M_ID)
 		{	
 			char *id = str_to_array(detail);
 			s_btree node;
-			int resultTree = BTget(&t_symtable, id, &node); // TODO
+			int resultTree = BTget(&t_symtable, id, &node); 
 
 			if (resultTree == -1)
 				return SEMANTIC_ERROR;
@@ -718,6 +776,9 @@ int func_stat()
 				return SYMTABLE_ERROR;
 
 			Ladd(&list, STcreateRead(STcreateVar(id, node->dtype)));
+
+			//token = scanner();
+			//if (token == LEX_ERROR) return LEX_ERROR;
 
 			return SYNTAX_OK;
 		}
@@ -727,19 +788,19 @@ int func_stat()
 		//token = scanner();
 		//if (token == LEX_ERROR) return LEX_ERROR;
 
-		s_stree prec_result = NULL;
-
-		result = prec_analyse(&prec_result);
-		if(result != SYNTAX_OK) return SYNTAX_ERROR;
-
+		s_stree expr_result = NULL;
 		token = scanner();
 		if (token == LEX_ERROR) return LEX_ERROR;
 
+		result = expr_analyse(&expr_result, 4);
+		if(result != SYNTAX_OK) return result;
+		Ladd(&list, STcreatePrint(expr_result));
+
+		//token = scanner();
+		//if (token == LEX_ERROR) return LEX_ERROR;
+
 		if(token == M_SEMICOLON)
 		{	
-			token = scanner();
-			if (token == LEX_ERROR) return LEX_ERROR;
-
 			result = func_expr_n();
 			if(result != SYNTAX_OK) return SYNTAX_ERROR;
 
@@ -751,9 +812,10 @@ int func_stat()
 		//token = scanner();
 		//if (token == LEX_ERROR) return LEX_ERROR;
 
-		s_stree prec_result = NULL;
-		result = prec_analyse(&prec_result);
-		if(result != SYNTAX_OK) return SYNTAX_ERROR;
+		s_stree expr_result = NULL;
+		result = expr_analyse(&expr_result, 1);
+		if(result != SYNTAX_OK) return result;
+		Ladd(&list, STcreateIf(expr_result));
 
 		if(token == M_THEN)
 		{
@@ -778,6 +840,7 @@ int func_stat()
 
 					if(token == M_IF)
 					{
+						eol_flag = 0;
 						Ladd(&list,STcreateEndIf());
 						return SYNTAX_OK;
 					}
@@ -788,6 +851,7 @@ int func_stat()
 	}
 	else if(token == M_DO)
 	{
+	
 		token = scanner();
 		if (token == LEX_ERROR) return LEX_ERROR;
 
@@ -796,19 +860,22 @@ int func_stat()
 			//token = scanner();
 			//if (token == LEX_ERROR) return LEX_ERROR;
 
-			s_stree prec_result = NULL;
-			result = prec_analyse(&prec_result);
+			s_stree expr_result = NULL;
+			result = expr_analyse(&expr_result, 3);
+			if (result != SYNTAX_OK) return result;
+			Ladd(&list, STcreateWhile(expr_result));
 
 			if(token == M_EOL)
 			{
 				token = scanner();
 				if (token == LEX_ERROR) return LEX_ERROR;
-
 				result = func_stat_list_while();
+				//printf(">> %s\n", str_to_array(detail));
 				if(result != SYNTAX_OK) return SYNTAX_ERROR;
 
 				if(token == M_LOOP)
 				{
+					eol_flag = 0;
 					Ladd(&list,STcreateEndWhile());
 					return SYNTAX_OK;
 				}
@@ -823,52 +890,57 @@ int func_stat()
 *	STAT_EXFU → id (<IN_PARAM_LIST>)
 *	@return Kód propagující syntaktickou správnost či chybu
 */
-int func_stat_exfu()
+int func_stat_exfu(char *dest, e_dstype type)
 {
 	int result;
 
+	s_btree node;
+
+	if (BTget(&t_symtable, dest, &node) != 0)
+		return SEMANTIC_ERROR;
+
 	char *id;
-
-	if(token == M_ID)	//TODO!!!ID->kontrolovat tabulku symbolů
+	if(token == M_ID || token == M_INTEGER_VAL || token == M_DOUBLE_VAL || token == M_STRING_VAL)
 	{
-		id = str_to_array(detail);
-		
-		//TODO - ověřit, jestli se jedná o správné použití knihovny STRING
-		detail_act = str_new();  //Uložím si detaily aktuálního tokenu, pro případné použití v precedenční analýze
-		str_put(detail_act,str_to_array(detail));
+		int fce = 0;
+		s_btree node2;
+		if (token == M_ID) {
+			id = str_to_array(detail);
+			fce = BTget(&g_symtable, id, &node2) == 0;
+		}
 
-		token_n = scanner();	//Podívám se na další token, podle kterého rozhodnu jestli se jedná o volání funkce nebo přiřazení
-		if (token_n == LEX_ERROR) return LEX_ERROR;
-
-		if(token_n == M_LEFT_PARANTHESE)	//Pokud je dalším tokenem  levá závorka, tak se jedná o volání funkce
-		{	
-			token_n = 0;
-			str_clear(detail_act);
-
+		if (fce) { // volání fce
 			token = scanner();
 			if (token == LEX_ERROR) return LEX_ERROR;
-			
-			result = func_in_param_list();
-			if(result != SYNTAX_OK) return SYNTAX_ERROR;
 
-			if(token == M_RIGHT_PARANTHESE)
-			{
-				return SYNTAX_OK;
-			}
-		}
-		else	//V opačném případě předávám řízení precedenční analýze
-		{	
-			token_next_flag = 1;  //Pamatuji si, že mám již načteny 2 tokeny a musím nejdřív obsloužit je
-								  //První token je v token a druhý v token_n
-								  //Detaily o nich jsou v detail_act a detail
-			
-			s_stree prec_result = NULL;
-			result = prec_analyse(&prec_result);
-			if (result != SYNTAX_OK) return SYNTAX_ERROR;
+			if (token != M_LEFT_PARANTHESE)
+				return SYNTAX_ERROR;
 
-			token_n = 0;
-			token_next_flag = 0;
-			str_clear(detail_act);
+			s_stree params = NULL;
+
+			result = func_in_param_list(&params, node2->params);
+			if(result != SYNTAX_OK) return result;
+
+			Ladd(&list, STcreateExpr(
+				STcreateVar(dest, type),
+				"asg",
+				STcreateCall(id, params)
+			));
+			eol_flag = 0;
+
+			return SYNTAX_OK;
+		} else { // výraz
+
+			s_stree expr_result;
+			result = expr_analyse(&expr_result, 5);
+			if(result != SYNTAX_OK) return result;
+
+			if (expr_result->ntype == n_const && expr_result->dtype == d_int && node->dtype == sd_double)
+				expr_result = STcreateDoubleConst(expr_result->value.v_int);
+
+			Ladd(&list, STcreateExpr(STcreateVar(dest, node->dtype), "asg", expr_result));
+	
+			eol_flag = 1;
 
 			return SYNTAX_OK;
 		}
@@ -884,22 +956,40 @@ int func_stat_exfu()
 int func_expr_n()
 {
 	int result;
+	
+	s_stree expr_result = NULL;
+	int tmp_token = token;
 
-	if(token == M_EOL)
-	{
+	
+	//printf("1. asas");
+	token = scanner();
+	if (token == LEX_ERROR) return LEX_ERROR;
+
+	if (tmp_token != M_SEMICOLON && token == M_EOL)
+		return SYNTAX_ERROR;
+		
+	//		printf("2. asas");
+	
+	if (token == M_EOL) {
 		eol_flag = 1;
 		return SYNTAX_OK;
 	}
 	
-	s_stree prec_result = NULL;
-	result = prec_analyse(&prec_result);
-	if(result != SYNTAX_OK) return SYNTAX_ERROR;
+	//printf(">> %s\n", str_to_array(detail));
+	result = expr_analyse(&expr_result, 4);
+	
+	//	printf("3. asas");
+
+	if(result != SYNTAX_OK) return result;
+	
+	//	printf("4. asas");
+
+	
+	//printf(">>3\n");
+	Ladd(&list, STcreatePrint(expr_result));
 
 	if(token == M_SEMICOLON)
 	{
-		token = scanner();
-		if (token == LEX_ERROR) return LEX_ERROR;
-
 		return func_expr_n();
 	}
 	return SYNTAX_ERROR;
@@ -921,10 +1011,12 @@ int func_stat_list_else()
 	else
 	{
 		result = func_stat();
-		if(result != SYNTAX_OK) return SYNTAX_ERROR;
+		if(result != SYNTAX_OK) return result;
 
-		token = scanner();
-		if (token == LEX_ERROR) return LEX_ERROR;
+		if(eol_flag != 1) {
+			token = scanner();
+			if (token == LEX_ERROR) return LEX_ERROR;
+		}
 		
 		if(token == M_EOL)
 		{
@@ -957,10 +1049,12 @@ int func_stat_list_if()
 	else
 	{
 		result = func_stat();
-		if(result != SYNTAX_OK) return SYNTAX_ERROR;
+		if(result != SYNTAX_OK) return result;
 
-		token = scanner();
-		if (token == LEX_ERROR) return LEX_ERROR;
+		if (eol_flag != 1) {
+			token = scanner();
+			if (token == LEX_ERROR) return LEX_ERROR;
+		}
 
 		if(token == M_EOL)
 		{
@@ -987,8 +1081,14 @@ int func_stat_list_while()
 		return SYNTAX_OK;
 	}
 	
+	//printf(">list_white< %s\n", str_to_array(detail));
 	result = func_stat();
-	if(result != SYNTAX_OK) return SYNTAX_ERROR;
+	if(result != SYNTAX_OK) return result;
+
+	if (token != M_EOL) {
+		token = scanner(); // < něco
+		if (token == LEX_ERROR) return LEX_ERROR;
+	}
 
 	if(token == M_EOL)
 	{
@@ -1046,12 +1146,14 @@ int func_stat_ret()
 
 	if(token == M_RETURN)
 	{
-		token = scanner();
-		if (token == LEX_ERROR) return LEX_ERROR;
 
-		s_stree prec_result = NULL;
-		result = prec_analyse(&prec_result);
-		if(result != SYNTAX_OK) return SYNTAX_ERROR;
+		s_stree expr_result = NULL;
+		result = expr_analyse(&expr_result, 2);
+		if(result != SYNTAX_OK) return result;
+
+		Ladd(&list, STcreateReturn(expr_result));
+
+		eol_flag = 1;
 
 		return SYNTAX_OK;
 	}
@@ -1062,27 +1164,62 @@ int func_stat_ret()
 *	IN_PARAM_LIST → term <IN_PARAM_N>
 *	@return Kód propagující syntaktickou správnost či chybu
 */
-int func_in_param_list()
+int func_in_param_list(s_stree *params, s_stree f_params)
 {
 	int result;
 
-	if(token == (M_INTEGER_VAL || M_DOUBLE_VAL || M_STRING_VAL ))
-	{
-		token = scanner();
-		if (token == LEX_ERROR) return LEX_ERROR;
+	token = scanner();
+	if (token == LEX_ERROR) return LEX_ERROR;
 
-		result = func_in_param_n();
-		if(result != SYNTAX_OK) return SYNTAX_ERROR;
+	if (token == M_RIGHT_PARANTHESE) {
+		if (f_params != NULL)
+			return SEMANTIC_ERROR;
+
+		return SYNTAX_OK;
+	}
+
+	if(token == M_INTEGER_VAL || token == M_DOUBLE_VAL || token == M_STRING_VAL)
+	{
+		switch (token) {
+			case M_INTEGER_VAL: {
+				if (f_params->lptr->dtype == d_string) return SEMANTIC_ERROR;
+				if (f_params->lptr->dtype == d_double)
+					*params = STcreateFirstParam(STcreateDoubleConst(strToDouble(str_to_array(detail))));
+				else
+					*params = STcreateFirstParam(STcreateIntConst(strToInt(str_to_array(detail)))); 
+				break;
+			}
+			case M_DOUBLE_VAL: {
+				if (f_params->lptr->dtype == d_string) return SEMANTIC_ERROR;
+				*params = STcreateFirstParam(STcreateDoubleConst(strToDouble(str_to_array(detail)))); 
+				break;
+			}
+			case M_STRING_VAL: {
+				if (f_params->lptr->dtype != d_string) return SEMANTIC_ERROR;
+				*params = STcreateFirstParam(STcreateStringConst(str_to_array(detail))); 
+				break;
+			}
+		}
+
+		result = func_in_param_n(params, f_params->rptr);
+		if(result != SYNTAX_OK) return result;
 
 		return SYNTAX_OK;
 	}
 	else if(token == M_ID)
 	{
-		token = scanner();		//!!!Kontrola ID v tabulce symbolů
-		if (token == LEX_ERROR) return LEX_ERROR;
+		char *id = str_to_array(detail);
 
-		result = func_in_param_n();
-		if(result != SYNTAX_OK) return SYNTAX_ERROR;
+		s_btree node;
+		int r = BTget(&t_symtable, id, &node);
+
+		if (r != 0 || (node->dtype == sd_string && f_params->lptr->dtype != d_string) || (node->dtype != sd_string && f_params->lptr->dtype == d_string)) // string nelze převáděť -> chyba
+			return SEMANTIC_ERROR;
+
+		*params = STcreateFirstParam(STcreateVar(id, node->dtype));
+
+		result = func_in_param_n(params, f_params->rptr);
+		if(result != SYNTAX_OK) return result;
 
 		return SYNTAX_OK;
 	}
@@ -1094,10 +1231,17 @@ int func_in_param_list()
 *	IN_PARAM_N → &
 *	@return Kód propagující syntaktickou správnost či chybu
 */
-int func_in_param_n()
+int func_in_param_n(s_stree *params, s_stree f_params)
 {	
+
+	token = scanner();
+	if (token == LEX_ERROR) return LEX_ERROR;
+
 	if(token == M_RIGHT_PARANTHESE)
 	{
+		if (f_params != NULL)
+			return SEMANTIC_ERROR;
+		
 		return SYNTAX_OK;
 	}
 	
@@ -1106,45 +1250,172 @@ int func_in_param_n()
 		token = scanner();
 		if (token == LEX_ERROR) return LEX_ERROR;
 
-		if(token == (M_INTEGER_VAL || M_DOUBLE_VAL || M_STRING_VAL ))
+		if(token == M_INTEGER_VAL || token == M_DOUBLE_VAL || token == M_STRING_VAL )
 		{
+			switch (token) {
+				case M_INTEGER_VAL: {
+					if (f_params->lptr->dtype == d_string) return SEMANTIC_ERROR;
+					if (f_params->lptr->dtype == d_double)
+						STaddNextParam(*params, STcreateDoubleConst(strToDouble(str_to_array(detail)))); 
+					else
+						STaddNextParam(*params, STcreateIntConst(strToInt(str_to_array(detail)))); 
+					break;
+				}
+
+				case M_DOUBLE_VAL: {
+					if (f_params->lptr->dtype == d_string) return SEMANTIC_ERROR;
+					STaddNextParam(*params, STcreateDoubleConst(strToDouble(str_to_array(detail)))); 
+					break;
+				}
+
+				case M_STRING_VAL: {
+					if (f_params->lptr->dtype != d_string) return SEMANTIC_ERROR;
+					STaddNextParam(*params, STcreateStringConst(str_to_array(detail))); 
+					break;
+				}
+			}
+
 			token = scanner();
 			if (token == LEX_ERROR) return LEX_ERROR;
 
-			return func_in_param_n();
+			return func_in_param_n(params, f_params->rptr);
 		}
 		else if(token == M_ID)
 		{
+			char *id = str_to_array(detail);
+			token = scanner();		
+			if (token == LEX_ERROR) return LEX_ERROR;
+	
+			s_btree node;
+			int r = BTget(&t_symtable, id, &node);
+	
+			if (r != 0 || (node->dtype == sd_string && f_params->lptr->dtype != d_string) || (node->dtype != sd_string && f_params->lptr->dtype == d_string)) // string nelze převáděť -> chyba
+				return SEMANTIC_ERROR;
+
+			STaddNextParam(*params, STcreateVar(id, node->dtype));
 			//!!!Kontrola ID v tabulce symbolů
 			token = scanner();
 			if (token == LEX_ERROR) return LEX_ERROR;
 			
-			return func_in_param_n();
+			return func_in_param_n(params, f_params->rptr);
 		}
 	}
 	return SYNTAX_ERROR;
 }
 
-//TODO- Precedenční analýza
+int expr_recurse(s_stree *node, Pexpression expr, int i) {
+	
+	if (i < 0 || expr->elements[expr->number - 1] == NULL)
+		return SYNTAX_OK;
+
+
+	if (expr->types[i] != 0) {
+		switch (expr->types[i]) {
+			case M_INTEGER_VAL: {
+				*node = STcreateIntConst(strToInt(str_to_array(expr->elements[i])));
+				break;
+			}
+
+			case M_DOUBLE_VAL: {
+				*node = STcreateDoubleConst(strToDouble(str_to_array(expr->elements[i])));
+				break;
+			}
+
+			case M_STRING_VAL: {
+				*node = STcreateStringConst(str_to_array(expr->elements[i]));
+				break;
+			}
+
+			case M_ID: {
+				s_btree vnode;
+				BTget(&t_symtable, str_to_array(expr->elements[i]), &vnode);
+				*node = STcreateVar(str_to_array(expr->elements[i]), vnode->dtype);
+				break;
+			}
+		}
+
+		removeElement(expr, i);		
+	} else {
+		char *oper = str_to_array(expr->elements[i]);
+		*node = STcreateExpr(STcreateIntConst(1), oper, STcreateIntConst(1));
+		s_stree left, right;
+		expr_recurse(&right, expr, i - 1);
+		(*node)->rptr = right;
+
+		expr_recurse(&left, expr, i - 1);
+		(*node)->lptr = left;	
+
+		if ((left->dtype == d_string && right->dtype != d_string) || (left->dtype != d_string && right->dtype == d_string)) { // u stringu neexistuje konverze
+			return SEMANTIC_ERROR;
+		}
+
+		if (left->dtype == d_string && strcmp(oper, "+") != 0) // operace pro string je pouze '+' / konkatenace
+			return SEMANTIC_ERROR;
+
+		if (isLoginOperation(oper))
+			(*node)->dtype = d_bool;
+		else if (strcmp(oper, "\\") == 0)
+			(*node)->dtype = d_int;
+		else if (strcmp(oper, "/") == 0)
+			(*node)->dtype = d_double;
+		else if (left->dtype == d_string)
+			(*node)->dtype = d_string;
+		else {
+			if (left->dtype == d_double || right->dtype == d_double)
+				(*node)->dtype = d_double;
+			else
+				(*node)->dtype = d_int;
+		}
+
+		removeElement(expr, i);
+	}
+
+	return SYNTAX_OK;
+}
+
+void print_stromecek(s_stree node) {
+
+	if (node == NULL) return;
+	
+	if (node->ntype == n_var) {
+		printf("> %s (var) \n", node->value.v_string);
+	} else if (node->ntype == n_const) {
+		switch (node->dtype) {
+			case d_double: printf("> %f (f)\n", node->value.v_double); break;
+			case d_string: printf("> %s (s)\n", node->value.v_string); break;
+			case d_int: printf("> %d (int)\n", node->value.v_int); break;
+			case d_undef: printf("> %s (undef)\n", node->value.v_string); break;
+			default: break;
+		}
+	}
+
+	printf("\n");
+	print_stromecek(node->rptr);
+	print_stromecek(node->lptr);
+
+}
+
 /**
 *	Funkce zpracující výrazy a určující pořadí jejich vyhodnocení
 *	@return Kód propagující syntaktickou správnost či chybu
 */
-int prec_analyse(s_stree *node)
+int expr_analyse(s_stree *node, int f)
 {
 	Pexpression expr;
-	int result = infixToPostfix(&expr);
+	int result = infixToPostfix(&expr, f);
 
-	printf("%d\n", result);
+
 	if (result != POSTFIX_OK) return result;
 
-	printf("%d\n", expr->number);
-	for (int i = 0; i < expr->number; i++) {
+/*
+	for (int i = 0; i < expr->number; i++)
 		printf("%s", str_to_array(expr->elements[i]));
-	}
-	exit(1);
 
-	return SYNTAX_OK;
+	printf("\n\n");*/
+
+	return expr_recurse(node, expr, expr->number - 1);
+
+	//print_stromecek(*node); exit(0);
 }
 
 /*
@@ -1157,7 +1428,6 @@ TODO: Nutno upravit hlavní volání parseru
 int parse()
 {
 	int result;
-//Inicializace tabulky symbolů a derivačního stromu/může být i v mainu
 	s_list list;
 	Linit(&list);
 	BTinit(&g_symtable);

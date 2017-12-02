@@ -157,6 +157,7 @@ s_stree STcreateExpr(s_stree leftValue, char *operation, s_stree rightValue)
 		return NULL;
 	}
 
+
 	STinit(&node);
 	if(STerror!=0)
 	{
@@ -166,7 +167,7 @@ s_stree STcreateExpr(s_stree leftValue, char *operation, s_stree rightValue)
 	}
 
 	node->ntype=n_expr;
-	node->dtype=d_undef;
+	node->dtype=d_string;
 	if((node->value.v_string=malloc(strlen(operation)+1))==NULL)
 	{
 		STclear(&leftValue);
@@ -284,6 +285,7 @@ s_stree STcreateCall(char *labelName, s_stree params)
 		return NULL;
 	}
 	ptr=params;
+
 	while(ptr!=NULL)
 	{
 		if(ptr->lptr->ntype!=n_var && ptr->lptr->ntype!=n_const && ptr->lptr->ntype!=n_call && ptr->lptr->ntype!=n_expr)
@@ -647,6 +649,83 @@ s_stree STcreateRead(s_stree var)
 	}
 
 	node->ntype=n_read;
+	node->dtype=d_undef;
+	node->value.v_string=NULL;
+	node->rptr=var;
+	node->lptr=NULL;
+
+	return node;
+}
+
+
+/*
+N: i2f
+D: UNDEF
+V: UNDEF
+rptr: var
+*/
+s_stree STcreateInt2Float(s_stree var)
+{
+	s_stree node;
+
+	if(STerror!=0)
+	{
+		STclear(&var);
+		return NULL;
+	}
+	if(var==NULL || var->ntype!=n_var)
+	{
+		STclear(&var);
+		STerror=2;
+		return NULL;
+	}
+
+	STinit(&node);
+	if(STerror!=0)
+	{
+		STclear(&var);
+		return NULL;
+	}
+
+	node->ntype=n_i2f;
+	node->dtype=d_undef;
+	node->value.v_string=NULL;
+	node->rptr=var;
+	node->lptr=NULL;
+
+	return node;
+}
+
+/*
+N: f2i
+D: UNDEF
+V: UNDEF
+rptr: var
+*/
+s_stree STcreateFloat2Int(s_stree var)
+{
+	s_stree node;
+
+	if(STerror!=0)
+	{
+		STclear(&var);
+		return NULL;
+	}
+	if(var==NULL || var->ntype!=n_var)
+	{
+		STclear(&var);
+		STerror=2;
+		return NULL;
+	}
+
+	STinit(&node);
+	if(STerror!=0)
+	{
+		STclear(&var);
+		return NULL;
+	}
+
+	node->ntype=n_f2i;
 	node->dtype=d_undef;
 	node->value.v_string=NULL;
 	node->rptr=var;

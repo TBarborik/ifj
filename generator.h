@@ -12,6 +12,7 @@
 #include <stdlib.h> // malloc / free
 #include <string.h> // strcmp
 #include "syntaxtree.h" // output
+#include "symtable.h"
 
 /**
  * Possible errors for the generator

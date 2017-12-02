@@ -38,6 +38,7 @@ unsigned cfs_next_id = 1; // control flow statement next id (for labels and such
 s_stree fct = NULL; // currently generated function (no nesting allowed)
 gStack stack = NULL; // conditions, loops stack (support for nesting ... no variable scope control)
 int t_frame = 0;
+int loop_expr = 0;
 unsigned g_errno = 0;
 
 FILE *out;
@@ -49,6 +50,10 @@ void printHeader();
 void g_createTF();
 
 char *stringify(char *);
+
+
+extern s_btree t_symtable;
+extern s_btree g_symtable;
 
 /**
  * Generates expressions and temporary variables.
@@ -81,6 +86,7 @@ void g_var(s_stree, int);
  * @param g_frame_level * frame in which variable is generated
  * @param int * is / isn't system generated variable
  */ 
+void g_cast_self(g_cast_type, s_stree tree, g_frame_level, int);
 s_stree g_cast(g_cast_type, s_stree, g_frame_level, int, g_frame_level *, int *);
 s_stree g_cast_full(g_cast_type, s_stree, g_frame_level, int, s_stree, g_frame_level, int);
 void g_castif(g_cast_type, s_stree, int);
@@ -263,6 +269,24 @@ char *processTree(s_stree tree)
             g_read(tree, 0);
             break;
         }
+
+        case n_i2f: {
+            if (DEBUG) {
+                g_printlvl();
+                fprintf(out, "i2f node \n");
+            }
+            g_cast_self(int2float, tree, f_local, 0);
+            break;
+        }
+
+        case n_f2i: {
+            if (DEBUG) {
+                g_printlvl();
+                fprintf(out, "f2i node \n");
+            }
+            g_cast_self(float2r2eint, tree, f_local, 0);
+            break;
+        }
     };
 
     level--;
@@ -326,15 +350,15 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
     if (s != NULL)
         *s = 0;
 
-    if (strcmp(tree->value.v_string, "=") == 0) { // přiřazení
+    if (strcmp(tree->value.v_string, "asg") == 0) { // přiřazení
         target = tree->lptr;
         if (tree->rptr->ntype == n_const || tree->rptr->ntype == n_var) {
             g_move(target, 0, tree->rptr, 0);
         } else if (tree->rptr->ntype == n_expr) {
-            int s = 0;
+            int s1 = 0;
             g_frame_level l = frame_level;
-            s_stree src = g_expression(tree->rptr, &s, &l);
-            g_move_frames(target, frame_level, 0, src, l, s);
+            s_stree src = g_expression(tree->rptr, &s1, &l);
+            g_move_frames(target, frame_level, 0, src, l, s1);
         } else if (tree->rptr->ntype == n_call) {
             g_call(tree->rptr);
             g_pop(target, 0);
@@ -353,31 +377,26 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
             src1 = g_expression(src1, &s1, &l1);
         } else if (src1->ntype == n_call) {
             g_call(src1);
-            char vname[10] = "tmp_";    
-            sprintf(vname,"%s%d", vname, sysv_next_id++); 
-            src1 = STcreateVar(vname, d_int); 
+
             s1 = 1;
-            l1 = f_local;
-            //l1 = f_temporary;
+            l1 = (loop_expr == 1) ? f_temporary : f_local;
+            src1 = g_tmp(l1, d_undef);   
+
             frame_level = l1;
-            g_var(src1, s1);
             g_pop(src1, s1);
             frame_level = bl;
         }
 
         if (src2->ntype == n_expr) {
             src2 = g_expression(src2, &s2, &l2);
-        } else if (src2->ntype == n_call) {
+        } else if (src2->ntype == n_call) {            
             g_call(src2);
-            char vname[10] = "tmp_";    
-            sprintf(vname,"%s%d", vname, sysv_next_id++);  
-            src2 = STcreateVar(vname, d_int);
+            
             s2 = 1;
-            l2 = f_local;
-            //l2 = f_temporary;
+            l2 = (loop_expr == 1) ? f_temporary : f_local;
+            src2 = g_tmp(l2, d_undef);   
             frame_level = l2;
-            g_var(src2, s2);
-            g_pop(src2, s2);
+            g_pop(src1, s2);
             frame_level = bl;
         }
 
@@ -397,7 +416,7 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
             // konstanta + proměnná přetyp na vyšší typ
             // podle konstanty
             if (src1->ntype == n_const && src1->dtype == d_double && src2->ntype == n_var) {
-                g_castif(int2float, src2, s2); 
+                printf("cast 1\n");
             } else if (src2->ntype == n_const && src2->dtype == d_double && src1->ntype == n_var) { 
                 g_castif(int2float, src1, s1); 
             } else {
@@ -406,7 +425,7 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
             }
         }
 
-        if (S_EQ(oper, "==")) {
+        if (S_EQ(oper, "=")) {
             fprintf(out, "EQ "); target->dtype = d_bool;
         } else if (S_EQ(oper, ">")) {
             fprintf(out, "GT "); target->dtype = d_bool;
@@ -494,6 +513,56 @@ void g_var(s_stree tree, int system)
     fprintf(out, "DEFVAR ");
     g_value(tree, system);
     fprintf(out, "\n");
+}
+
+void g_cast_self(g_cast_type type, s_stree v, g_frame_level l, int system) {
+    switch (type) {
+        case int2float: {
+            fprintf(out, "INT2FLOAT ");
+            v->dtype = d_double;
+            break;
+        }
+
+        case float2int: {            
+            fprintf(out, "FLOAT2INT ");
+            v->dtype = d_int;
+            break;
+        }
+
+        case float2r2eint: {            
+            fprintf(out, "FLOAT2R2EINT ");
+            v->dtype = d_int;
+            break;
+        }
+
+        case float2r2oint: {            
+            fprintf(out, "FLOAT2R2OINT ");
+            v->dtype = d_int;
+            break;
+        }
+
+        case int2char: {            
+            fprintf(out, "INT2CHAR ");
+            v->dtype = d_string;
+            break;
+        }
+
+        default: {
+            return;
+        }
+    }
+
+    s_stree node = v;
+    if (node->ntype == n_f2i || node->ntype == n_i2f)
+        node = v->rptr;
+
+    g_frame_level bl = frame_level;
+    frame_level = l;
+    g_value(node, system);
+    fprintf(out, " ");
+    g_value(node, system);
+    fprintf(out, "\n");
+    frame_level = bl;
 }
 
 s_stree g_cast(g_cast_type ct, s_stree dst, g_frame_level dst_l, int dst_s, g_frame_level *t_l, int *t_s)
@@ -870,7 +939,9 @@ void g_loop(s_stree tree)
     g_frame_level bl = frame_level;
     if (tree->rptr->ntype == n_expr) {
        g_createTF();
+       loop_expr = 1;
        r_var = g_expression(r_var, &s, &l);
+       loop_expr = 0;
     }
 
     frame_level = l;
@@ -993,7 +1064,7 @@ s_stree g_tmp(g_frame_level frame, e_dstype type)
     char vname[10] = "tmp_";    
     sprintf(vname,"%s%d", vname, sysv_next_id++);       
     s_stree tmp = STcreateVar(vname, type);
-    g_var(tmp, 1);
+    g_var(tmp, 1); // tmp is always system
     frame_level = bl;
     return tmp;
 }
