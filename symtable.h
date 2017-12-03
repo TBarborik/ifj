@@ -31,7 +31,6 @@ typedef struct _btree{
 	char *key;
 	struct _btree *lptr;
 	struct _btree *rptr;
-	struct _btree *l_symtable;
 	s_stree params;
 } *s_btree;
 
