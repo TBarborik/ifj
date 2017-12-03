@@ -49,7 +49,7 @@ void g_printlvl();
 void printHeader();
 void g_createTF();
 
-char *stringify(char *);
+unsigned char *stringify(char *);
 
 
 extern s_btree t_symtable;
@@ -312,16 +312,20 @@ void g_createTF()
     fprintf(out, "CREATEFRAME\n");
 }
 
-char *stringify(char *str)
+unsigned char *stringify(char *str)
 {
     unsigned i = 0;
-    char *rstr = (char *) malloc(sizeof(char) * i);
+    unsigned char *rstr = (unsigned char *) malloc(sizeof(char) * i);
+    //printf(">> %s\n <<", str);
     //*rstr = '\0';
 
     while (str != NULL && *str != '\0') {
-        if (*str  < 33 || *str == 35 || *str == 92) {
+        unsigned char c = (unsigned char) *str;
+        
+        if (c  < 33 || c == 35 || c == 92) {
+            //printf(">> prevadim znak: %d - %c\n", (char) *str, *str);
             i += 4;
-            rstr = (char *) realloc(rstr, sizeof(char) * i);
+            rstr = (unsigned char *) realloc(rstr, sizeof(unsigned char) * i);
             rstr[i - 4] = '\\';
             rstr[i - 3] = '0';
 
@@ -335,7 +339,7 @@ char *stringify(char *str)
             }
         } else {
             i++;
-            rstr = (char *) realloc(rstr, sizeof(char) * i);
+            rstr = (unsigned char *) realloc(rstr, sizeof(unsigned char) * i);
             rstr[i - 1] = *str;
         }
 
@@ -343,7 +347,7 @@ char *stringify(char *str)
     }
 
     i++;
-    rstr = (char *) realloc(rstr, sizeof(char) * i);
+    rstr = (unsigned char *) realloc(rstr, sizeof(char) * i);
     rstr[i - 1] = '\0';
 
     return rstr;
@@ -1063,7 +1067,7 @@ void g_value(s_stree tree, int system)
             } else if (tree->dtype == d_double) {
                 fprintf(out, "float@%g", tree->value.v_double);
             } else {
-                char *so = stringify(tree->value.v_string);
+                unsigned char *so = stringify(tree->value.v_string);
                 fprintf(out, "string@%s", so);
                 free(so);
             }
@@ -1152,24 +1156,7 @@ void g_buildIn() {
     g_buildInAsc();
     g_buildInChr();
 }
-void g_buildInSubStr() {
-    char *fcname = "substr";
-    fprintf(out, "JUMP fcaf_%s\n\nLABEL fc_%s\n", fcname, fcname);
-    fprintf(out, "CREATEFRAME\n");
-    fprintf(out, "PUSHFRAME\n");
 
-    fprintf(out, "DEFVAR LF@s\n");
-    fprintf(out, "DEFVAR LF@i\n");
-    fprintf(out, "DEFVAR LF@n\n");
-    fprintf(out, "POPS LF@s\n");
-    fprintf(out, "POPS LF@i\n");
-    fprintf(out, "POPS LF@n\n");
-    
-    fprintf(out, "LABEL fce_%s\n", fcname);
-    fprintf(out, "POPFRAME\n");
-    fprintf(out, "RETURN\n");
-    fprintf(out, "LABEL fcaf_%s\n\n", fcname);
-}
 void g_buildInLength() {
     char *fcname = "length";
     fprintf(out, "JUMP fcaf_%s\n\nLABEL fc_%s\n", fcname, fcname);
@@ -1182,6 +1169,73 @@ void g_buildInLength() {
     fprintf(out, "STRLEN LF@l LF@s\n");
     fprintf(out, "PUSHS LF@l\n");
 
+    fprintf(out, "LABEL fce_%s\n", fcname);
+    fprintf(out, "POPFRAME\n");
+    fprintf(out, "RETURN\n");
+    fprintf(out, "LABEL fcaf_%s\n\n", fcname);
+}
+
+void g_buildInSubStr() { // SubStr(s As String, i As Integer, n As Integer) As String
+    char *fcname = "substr";
+    fprintf(out, "JUMP fcaf_%s\n\nLABEL fc_%s\n", fcname, fcname);
+    fprintf(out, "CREATEFRAME\n");
+    fprintf(out, "PUSHFRAME\n");
+
+    fprintf(out, "DEFVAR LF@s\n");
+    fprintf(out, "DEFVAR LF@i\n");
+    fprintf(out, "DEFVAR LF@n\n");
+    fprintf(out, "POPS LF@s\n");
+    fprintf(out, "POPS LF@i\n");
+    fprintf(out, "POPS LF@n\n");
+
+    fprintf(out, "DEFVAR LF@in_ss_tmp1\n"); // typová kontrola pro i
+    fprintf(out, "TYPE LF@in_ss_tmp1 LF@i\n");
+    fprintf(out, "JUMPIFEQ in_ss_cast1 LF@in_ss_tmp1 string@int\n");
+        fprintf(out, "FLOAT2R2EINT LF@i LF@i\n");
+    fprintf(out, "LABEL in_ss_cast1\n");
+
+    fprintf(out, "TYPE LF@in_ss_tmp1 LF@n\n"); // typová kontrola pro n
+    fprintf(out, "JUMPIFEQ in_ss_cast2 LF@in_ss_tmp1 string@int\n");
+        fprintf(out, "FLOAT2R2EINT LF@n LF@n\n");
+    fprintf(out, "LABEL in_ss_cast2\n");
+
+    fprintf(out, "JUMPIFEQ fce0_%s LF@s string@\n", fcname); // s je prázdné => return ""
+
+    fprintf(out, "DEFVAR LF@in_ss_tmp2\n");
+    fprintf(out, "LT LF@in_ss_tmp2 LF@i int@1\n");
+    fprintf(out, "JUMPIFEQ fce0_%s LF@in_ss_tmp2 bool@true\n", fcname); // i <= 0 => return ""
+    
+    fprintf(out, "DEFVAR LF@l\n");
+    fprintf(out, "STRLEN LF@l LF@s\n"); // l = length(s)
+    fprintf(out, "DEFVAR LF@in_ss_tmp3\n");
+    fprintf(out, "SUB  LF@in_ss_tmp3 LF@l LF@i\n"); // in_ss_tmp3 = l - i
+    fprintf(out, "DEFVAR LF@in_ss_tmp4\n");
+    fprintf(out, "GT LF@in_ss_tmp4 LF@n LF@in_ss_tmp3\n");
+    fprintf(out, "JUMPIFEQ fce0_%s LF@in_ss_tmp4 bool@true\n", fcname); // n > length(s) - i => return ""
+
+    fprintf(out, "DEFVAR LF@result\n");
+    fprintf(out, "DEFVAR LF@result_char\n");
+    fprintf(out, "DEFVAR LF@in_ss_tmp5\n");
+    fprintf(out, "SUB LF@i LF@i int@1\n");
+    fprintf(out, "MOVE LF@result string@\n");
+    fprintf(out, "LABEL in_ss_loop\n");
+    fprintf(out, "SUB LF@n LF@n int@1\n"); // n = n - 1
+    fprintf(out, "LT LF@in_ss_tmp5 LF@n int@0\n");
+    fprintf(out, "JUMPIFEQ in_ss_loop_end LF@in_ss_tmp5 bool@true\n");
+
+    fprintf(out, "GETCHAR LF@result_char LF@s LF@i\n");
+    fprintf(out, "CONCAT LF@result LF@result LF@result_char\n");
+    fprintf(out, "ADD LF@i LF@i int@1\n");
+
+    fprintf(out, "JUMP in_ss_loop\n");
+    fprintf(out, "LABEL in_ss_loop_end\n");
+
+    fprintf(out, "PUSHS LF@result\n");
+
+    fprintf(out, "JUMP fce_%s\n", fcname);
+    
+    fprintf(out, "LABEL fce0_%s\n", fcname);
+    fprintf(out, "PUSHS string@\n");
     fprintf(out, "LABEL fce_%s\n", fcname);
     fprintf(out, "POPFRAME\n");
     fprintf(out, "RETURN\n");
@@ -1315,7 +1369,7 @@ void gs_destroy(gStack stack)
     free(stack);
 }
 
-// EXTARNAL //
+// EXTERNAL //
 
 int generate(s_list list, FILE *f)
 {

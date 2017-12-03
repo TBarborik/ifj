@@ -3,6 +3,9 @@
 #include "string.h"
 #include "scanner.h"
 
+int allowScan = 1;
+int c;
+
 char* normalize(char* str){
 	int i = 0;
 	while(str[i] != '\0'){
@@ -16,7 +19,6 @@ char* normalize(char* str){
 }
 
 int scanner(){
-	int c;
 	int id = 0;
 	
 	str_clear(detail);
@@ -59,7 +61,12 @@ int scanner(){
 		return id; // Symbol, v detailu presny znak.
 	}
 	while (id == 0){
-		c = fgetc(stdin);
+		if (allowScan){
+			c = fgetc(stdin);
+		}
+		else {
+			allowScan = 1;
+		}
 		switch(state){
 			case START:
 				if (c == '_' || (c >= 65 && c <= 90) || (c >= 97 && c <= 122)){
@@ -149,7 +156,11 @@ int scanner(){
 					id = 1;
 					break;
 				}
-				
+				else if (c == '/'){
+					state = SLASH;
+					id = 1;
+					break;
+				}				
 				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == '='  || c == ';' || c == '\n' || c == ',' || c == '(' || c == ')'){
 					state = START;
 					id = 1;
@@ -266,7 +277,7 @@ int scanner(){
 					break;
 				}
 				
-				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == '='  || c == ';' || c == '\n' ){
+				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == '='  || c == ';' || c == '\n' || c == '(' || c == ')'){
 					state = START;
 					id = 3;
 					symbol = c;
@@ -319,7 +330,7 @@ int scanner(){
 					break;
 				}
 				
-				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == ','  || c == ';' || c == '=' || c == '\n'){
+				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == ','  || c == ';' || c == '=' || c == '\n' || c == '(' || c == ')'){
 					state = START;
 					id = 3;
 					symbol = c;
@@ -358,7 +369,14 @@ int scanner(){
 					state = E;
 					break;
 				}
-				
+				else if (c < 32){
+					state = E;
+					break;
+				}
+				else if (c == '\\'){
+					state = BACKSLASH_IN_STR;
+					break;
+				}
 				else if (c == '"'){
 					state = START;
 					id = 4;
@@ -384,6 +402,14 @@ int scanner(){
 					id = 4;
 					break;
 				}
+				else if (c < 32){
+					state = E;
+					break;
+				}
+				else if (c == '\\'){
+					state = BACKSLASH_IN_STR;
+					break;
+				}
 				
 				else if (c == '\n'){
 					state = E;
@@ -401,6 +427,54 @@ int scanner(){
 				}
 				break;
 				
+			case BACKSLASH_IN_STR:
+				if (c == 'n'){
+					str_append_char(detail, '\n');
+					state = STR_IN;
+					break;
+				}
+				else if (c == 't'){
+					str_append_char(detail, '\t');
+					state = STR_IN;
+					break;
+				}
+				else if (c == '\\'){
+					str_append_char(detail, '\\');
+					state = STR_IN;
+					break;
+				}
+				else if (c == '"'){
+					str_append_char(detail, '"');
+					state = STR_IN;
+					break;
+				}
+				else if (c >= 48 && c <= 57){
+					int znak = (c - 48) * 100;
+					c = fgetc(stdin);
+					if (c < 48 || c > 57){
+						state = E;
+						break;
+					}
+					znak += (c-48) * 10;
+					c = fgetc(stdin);
+					if (c < 48 || c > 57){
+						state = E;
+						break;
+					}
+					znak += c-48;
+					if (znak < 1 || znak > 255){
+						state = E;
+						break;
+					}
+					str_append_char(detail, znak);
+					state = STR_IN;
+					break;
+				}
+				else{
+					state = E;
+					break;
+				}
+			
 			case SLASH:
 				if (c == '\''){
 					state = COMMENT_BLOCK;
@@ -418,6 +492,7 @@ int scanner(){
 					state = START;
 					id = 5;
 					str_append_char(detail, '/');
+					allowScan = 0; // Uz mam precteny symbol
 					break;
 				}
 				
@@ -425,6 +500,8 @@ int scanner(){
 				
 			case COMMENT:
 				if (c == '\n'){
+					str_put_char(detail, c);
+					id = 5;
 					state = NEWLINE;
 					break;
 				}
@@ -445,7 +522,7 @@ int scanner(){
 				}
 				
 				else if (c == EOF){
-					state = FINISH;
+					state = E;
 					break;
 				}
 				
@@ -460,7 +537,7 @@ int scanner(){
 				}
 				
 				else if (c == EOF){
-					state = FINISH;
+					state = E;
 					break;
 				}
 				
@@ -501,7 +578,10 @@ int scanner(){
 				}
 				
 				else{
-					//TODO: MUZE NASLEDOVAT COKOLIV BEZ MEZERY, POTREBA VYRESIT JAK ODESLAT (STAVY JAKO PRO START?) 
+					state = START;
+					str_append_char(detail, '<'); 
+					id = 5;
+					allowScan = 0;
 					break;
 				}
 				break;
@@ -530,7 +610,10 @@ int scanner(){
 				}
 				
 				else{
-					//TODO: MUZE NASLEDOVAT COKOLIV BEZ MEZERY, POTREBA VYRESIT JAK ODESLAT (STAVY JAKO PRO START?) 
+					state = START;
+					str_append_char(detail, '>'); 
+					id = 5;
+					allowScan = 0;
 					break;
 				}
 				break;
@@ -559,7 +642,7 @@ int scanner(){
 				}
 				
 				else if (c == '\''){
-					state = COMMENT;
+					state = COMMENT_ON_NEWLINE;
 					break;
 				}
 				
@@ -568,7 +651,7 @@ int scanner(){
 				}
 				
 				else if (c == '/'){
-					state = SLASH;
+					state = SLASH_ON_NEWLINE;
 					break;
 				}
 				
@@ -601,6 +684,68 @@ int scanner(){
 				}
 				break;	
 			
+			case COMMENT_ON_NEWLINE:
+				if (c == '\n'){
+					state = NEWLINE;
+					break;
+				}				
+				else{
+					break;
+				}
+				
+			case SLASH_ON_NEWLINE:
+				if (c == '\''){
+					state = COMMENT_BLOCK_ON_NEWLINE;
+					break;
+				}
+				
+				else if (c == EOF){
+					state = FINISH;
+					id = 5;
+					str_append_char(detail, '/');
+					break;
+				}
+				
+				else{
+					state = START;
+					id = 5;
+					str_append_char(detail, '/');
+					break;
+				}
+				
+				break;
+				
+			case COMMENT_BLOCK_ON_NEWLINE:
+				if (c == '\''){
+					state = COMMENT_ENDING_ON_NEWLINE;
+					break;
+				}
+				
+				else if (c == EOF){
+					state = E;
+					break;
+				}
+				
+				else{
+					break;
+				}
+				
+			case COMMENT_ENDING_ON_NEWLINE:
+				if (c == '/'){
+					state = NEWLINE;
+					break;
+				}
+				
+				else if (c == EOF){
+					state = E;
+					break;
+				}
+				
+				else{
+					state = COMMENT_BLOCK_ON_NEWLINE;
+					break;
+				}
+				
 			case FINISH:
 				id = 6;
 				break;
@@ -612,7 +757,9 @@ int scanner(){
 		}
 	}
 	
-	str_put(detail, normalize(str_to_array(detail)));
+	if (id != 4){
+		str_put(detail, normalize(str_to_array(detail)));
+	}
 	if (id == 1){
 		if (strcmp(str_to_array(detail), "as") == 0)
 			id = 10;

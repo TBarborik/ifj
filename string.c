@@ -100,12 +100,14 @@ void str_append(string s, char *arr)
         if (s == NULL) {
             s = str_new();
         } else if (s->len == STR_MAXLEN) {
+            prev = s;
             s = s->next;
             continue;
         }
 
-        if (prev != NULL)
+        if (prev != NULL) {
             prev->next = s;
+        }
 
         unsigned int l = s->len - 1;
         for (; l < (strL - i * STR_MAXLEN) && l < STR_MAXLEN; l++) {

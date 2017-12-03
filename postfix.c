@@ -145,7 +145,7 @@ int isPossibleToken(int flag, int token){
 		return SYNTAX_ERROR;
 	}
 
-	return r != 0 ? SEMANTIC_ERROR_1 : POSTFIX_ERROR;		
+	return r != 0 ? (( token != M_ID) ? SYNTAX_ERROR :SEMANTIC_ERROR_1) : POSTFIX_ERROR;		
 }
 
 int infixToPostfix(Pexpression *expression, int flag){	// FLAG: 1: IF		2: Prirazeni 	3: LOOP		4: PRINT	5: PRIRAZENI FUNC/VYRAZ

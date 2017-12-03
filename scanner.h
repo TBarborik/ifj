@@ -19,6 +19,11 @@
 #define E 19
 #define FINISH 20
 #define NEWLINE 21
+#define COMMENT_ON_NEWLINE 22
+#define BACKSLASH_IN_STR 23
+#define SLASH_ON_NEWLINE 24
+#define COMMENT_BLOCK_ON_NEWLINE 25
+#define COMMENT_ENDING_ON_NEWLINE 26
 
 extern string detail;
 extern int state;

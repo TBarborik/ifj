@@ -21,6 +21,8 @@ s_btree t_symtable = NULL;
 char *fce_id;
 e_dtype fce_type;
 
+int in_scope = 0;
+
 /*
 TODO: Nutno dokončit vkládání a ověřování ID v tabulce symbolů
 TODO: Nutno dokončit vkládání do derivační tabulky pro generování mezikódu
@@ -108,8 +110,10 @@ int func_body()
 			token = scanner();
 			if (token == LEX_ERROR) return LEX_ERROR;
 
+			in_scope = 1;
 			result = func_program();
 			if (result != SYNTAX_OK) return result;
+			in_scope = 0;
 
 			if(token == M_END)
 			{
@@ -585,7 +589,7 @@ int func_assign(char *id, e_dtype type)
 		if(result != SYNTAX_OK) return result;
 		if (expr_result == NULL) return SYNTAX_ERROR;
 
-		if (expr_result->dtype == d_string && type != sd_string) // nesouhlasné typy
+		if ((expr_result->dtype == d_string && type != sd_string) || (type == sd_string && expr_result->dtype != d_string)) // nesouhlasné typy
 			return SEMANTIC_ERROR_2;
 
 		Ladd(&list, STcreateExpr(STcreateVar(id, type), "asg", expr_result));
@@ -867,6 +871,7 @@ int func_stat()
 		result = expr_analyse(&expr_result, 1);
 		if(result != SYNTAX_OK) return result;
 		if (expr_result == NULL) return SYNTAX_ERROR;
+		if (expr_result->dtype != d_bool) return SEMANTIC_ERROR_2;
 		Ladd(&list, STcreateIf(expr_result));
 
 		if(token == M_THEN)
@@ -916,6 +921,7 @@ int func_stat()
 			result = expr_analyse(&expr_result, 3);
 			if (result != SYNTAX_OK) return result;
 			if (expr_result == NULL) return SYNTAX_ERROR;
+			if (expr_result->dtype != d_bool) return SEMANTIC_ERROR_2;
 			Ladd(&list, STcreateWhile(expr_result));
 
 			if(token == M_EOL)
@@ -934,7 +940,7 @@ int func_stat()
 				}
 			}
 		}
-	} else if (token == M_RETURN) {
+	} else if (token == M_RETURN && in_scope == 0) {
 		result = func_stat_ret(fce_id, fce_type);
 		if (result != SYNTAX_OK) return result;
 
@@ -1502,7 +1508,7 @@ int expr_recurse(s_stree *node, Pexpression expr, int i) {
 		}
 
 		if (left->dtype == d_string && strcmp(oper, "+") != 0) // operace pro string je pouze '+' / konkatenace
-			return SEMANTIC_ERROR_3;
+			return SEMANTIC_ERROR_2;
 
 		if (isLoginOperation(oper))
 			(*node)->dtype = d_bool;
@@ -1566,7 +1572,7 @@ int expr_analyse(s_stree *node, int f)
 	int r = expr_recurse(node, expr, expr->number - 1);
 	free(expr->elements);
 	free(expr->types);
-	print_stromecek(*node, 0); exit(0);
+	//print_stromecek(*node, 0); exit(0);
 	return r;
 
 }

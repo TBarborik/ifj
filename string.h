@@ -17,7 +17,7 @@
 #include <stdlib.h> // memory
 #include <string.h> // comparing
 
-#define STR_MAXLEN 200
+#define STR_MAXLEN 256
 
 typedef struct str {
     char *arr; // array with the string
