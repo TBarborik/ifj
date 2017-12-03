@@ -1,4 +1,10 @@
 /**
+ * Projekt - Tým 097, varianta I
+ * Autor: Tom Barbořík (xbarbo06)
+ * Reprezentace textového řetězce (string)
+ */
+
+/**
  * String library. It takes care of char array to make sure
  * there is enough space to store neccessary content.
  * It is made as linear list with one node space of

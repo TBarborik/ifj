@@ -1,7 +1,9 @@
 /**
-* Parser zpracovávající výstup lexikální analýzy a ověřující jeho syntaktickou správnost   
-* @author Miroslav Tichavský
-*/
+ * Projekt - Tým 097, varianta I
+ * Autor: Tichavský Miroslav (xticha04), Tom Barbořík (xbarbo06), Pavel Kaleta (xkalet05)
+ * Parser zpracovávající výstup lexikální analýzy a ověřující jeho syntaktickou a sémantickou správnost   
+ */
+
 #ifndef PARSER_H
 #define PARSER_H
 

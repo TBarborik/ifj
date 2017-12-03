@@ -1,4 +1,10 @@
 /**
+ * Projekt - Tým 097, varianta I
+ * Autor: Tom Barbořík (xbarbo06)
+ * Obecný zásobní pro ukládání a vyzvedávání hodnot (např. pro výrazy)
+ */
+
+/**
  * Abstract stack library. Works with preprocessor
  * constant STACK_TYPE to determine what
  * type of data will be stored.

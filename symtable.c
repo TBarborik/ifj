@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: David Myška (xmyska05)
+ * Tabulka symbolů pomocí binárního stromu
+ */
+
 #include "symtable.h"
 #include <string.h>
 #include <stdlib.h>

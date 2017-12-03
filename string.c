@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: Tom Barbořík (xbarbo06)
+ * Reprezentace textového řetězce (string)
+ */
+
 #include "string.h"
 
 // INTERNAL

@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: Tom Barbořík (xbarbo06)
+ * Generátor cílového kódu pro interpret
+ */
+
 #include "generator.h"
 #define DEBUG 0
 
@@ -444,11 +450,89 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
         } else if (S_EQ(oper, "<")) {
             fprintf(out, "LT "); target->dtype = d_bool;
         } else if (S_EQ(oper, "<>")) {
-            
+            fprintf(out, "EQ "); target->dtype = d_bool;           
+            frame_level = *src_frame;
+            g_value(target, 1); fprintf(out, " ");
+            frame_level = l1;
+            g_value(src1, s1); fprintf(out, " ");
+            frame_level = l2;
+            g_value(src2, s2); fprintf(out, "\n");
+            frame_level = bl;
+            target->dtype = d_bool;
+
+            fprintf(out, "NOT ");     
+            frame_level = *src_frame;
+            g_value(target, 1); fprintf(out, " ");     
+            frame_level = *src_frame;
+            g_value(target, 1); fprintf(out, "\n");
+            frame_level = bl;
+            target->dtype = d_bool;
+
+            return target;
         } else if (S_EQ(oper, "<=")) {
+            s_stree e_tmp1; s_stree e_tmp2;
+            g_frame_level e_l1 = (loop_expr == 1) ? f_temporary : f_local, e_l2 = (loop_expr == 1) ? f_temporary : f_local;
+            e_tmp1 = g_tmp(e_l1, d_bool);
+            e_tmp2 = g_tmp(e_l2, d_bool);
+
+            frame_level = e_l1;
+            fprintf(out, "LT ");
+            g_value(e_tmp1, 1); fprintf(out, " ");
+            frame_level = l1;
+            g_value(src1, s1); fprintf(out, " ");
+            frame_level = l2;
+            g_value(src2, s2); fprintf(out, "\n");
             
+            frame_level = e_l2;
+            fprintf(out, "EQ ");
+            g_value(e_tmp2, 1); fprintf(out, " ");
+            frame_level = l1;
+            g_value(src1, s1); fprintf(out, " ");
+            frame_level = l2;
+            g_value(src2, s2); fprintf(out, "\n");
+
+            frame_level = *src_frame;
+            fprintf(out, "OR ");
+            g_value(target, 1); fprintf(out, " ");
+            frame_level = e_l1;
+            g_value(e_tmp1, 1); fprintf(out, " ");
+            frame_level = e_l2;
+            g_value(e_tmp2, 1); fprintf(out, "\n");
+        
+            target->dtype = d_bool;
+            return target;
         } else if (S_EQ(oper, ">=")) {
-            fprintf(out, "LT "); target->dtype = d_bool;
+            s_stree e_tmp1; s_stree e_tmp2;
+            g_frame_level e_l1 = (loop_expr == 1) ? f_temporary : f_local, e_l2 = (loop_expr == 1) ? f_temporary : f_local;
+            e_tmp1 = g_tmp(e_l1, d_bool);
+            e_tmp2 = g_tmp(e_l2, d_bool);
+
+            frame_level = e_l1;
+            fprintf(out, "GT ");
+            g_value(e_tmp1, 1); fprintf(out, " ");
+            frame_level = l1;
+            g_value(src1, s1); fprintf(out, " ");
+            frame_level = l2;
+            g_value(src2, s2); fprintf(out, "\n");
+            
+            frame_level = e_l2;
+            fprintf(out, "EQ ");
+            g_value(e_tmp2, 1); fprintf(out, " ");
+            frame_level = l1;
+            g_value(src1, s1); fprintf(out, " ");
+            frame_level = l2;
+            g_value(src2, s2); fprintf(out, "\n");
+
+            frame_level = *src_frame;
+            fprintf(out, "OR ");
+            g_value(target, 1); fprintf(out, " ");
+            frame_level = e_l1;
+            g_value(e_tmp1, 1); fprintf(out, " ");
+            frame_level = e_l2;
+            g_value(e_tmp2, 1); fprintf(out, "\n");
+        
+            target->dtype = d_bool;
+            return target;
         } else if (S_EQ(oper, "AND") || S_EQ(oper, "&&")) {
             fprintf(out, "AND "); target->dtype = d_bool;
         } else if (S_EQ(oper, "OR") || S_EQ(oper, "||")) {

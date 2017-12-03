@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: Pavel Kaleta (xkalet05)
+ * Skenuje jednotlivá slova a provádí lexikální analýzu
+ */
+
 #define START 1
 #define ID_IN 2
 #define INT_IN 3

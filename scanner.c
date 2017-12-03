@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: Pavel Kaleta (xkalet05)
+ * Skenuje jednotlivá slova a provádí lexikální analýzu
+ */
+
 #include <stdlib.h>
 #include <stdio.h>	//PRO TESTOVACI UCELY
 #include "string.h"
@@ -145,7 +151,11 @@ int scanner(){
 					id = 1;
 					break;
 				}
-				
+				else if (c == '\''){
+					state = COMMENT;
+					id = 1;
+					break;
+				}
 				else if (c == '>'){
 					state = MORE;
 					id = 1;
@@ -192,6 +202,12 @@ int scanner(){
 				else if (c == '.'){
 					state = DBL_BEFORE;
 					str_append_char(detail, c);
+					break;
+				}
+				
+				else if (c == '\''){
+					state = COMMENT;
+					id = 2;
 					break;
 				}
 				
@@ -276,7 +292,11 @@ int scanner(){
 					id = 3;
 					break;
 				}
-				
+				else if (c == '\''){
+					state = COMMENT;
+					id = 3;
+					break;
+				}
 				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == '='  || c == ';' || c == '\n' || c == '(' || c == ')'){
 					state = START;
 					id = 3;
@@ -329,7 +349,11 @@ int scanner(){
 					id = 3;
 					break;
 				}
-				
+				else if (c == '\''){
+					state = COMMENT;
+					id = 3;
+					break;
+				}
 				else if (c == '+' || c == '-' || c == '*' || c == '\\' || c == ','  || c == ';' || c == '=' || c == '\n' || c == '(' || c == ')'){
 					state = START;
 					id = 3;

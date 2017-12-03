@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: David Myška (xmyska05)
+ * Syntaktický strom
+ */
+
 #ifndef SYNTAXTREE_H
 #define SYNTAXTREE_H 1
 

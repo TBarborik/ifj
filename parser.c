@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: Tichavský Miroslav (xticha04), Tom Barbořík (xbarbo06), Pavel Kaleta (xkalet05)
+ * Parser zpracovávající výstup lexikální analýzy a ověřující jeho syntaktickou a sémantickou správnost   
+ */
+
 #include "parser.h"
 
 #define SYMTABLE_ERROR 41
@@ -1569,6 +1575,7 @@ int expr_analyse(s_stree *node, int f)
 	int result = infixToPostfix(&expr, f);
 
 	if (result != POSTFIX_OK) return result;
+	if (expr->number == 0) return SYNTAX_ERROR;
 
 	int r = expr_recurse(node, expr, expr->number - 1);
 	free(expr->elements);

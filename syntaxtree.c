@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: David Myška (xmyska05)
+ * Syntaktický strom
+ */
+
 #include "syntaxtree.h"
 #include <stdlib.h>
 #include <string.h>

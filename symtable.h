@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: David Myška (xmyska05)
+ * Tabulka symbolů pomocí binárního stromu
+ */
+
 #ifndef SYMTABLE_H
 #define SYMTABLE_H 1
 

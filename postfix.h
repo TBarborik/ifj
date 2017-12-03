@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: Pavel Kaleta (xkalet05)
+ * Převedení infixového výrazu pomocí analýzi na postfixovou notaci
+ */
+
 #ifndef HEADER_POSTFIX
 #define HEADER_POSTFIX
 

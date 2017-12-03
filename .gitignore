@@ -1,6 +1,7 @@
 .vs
 .vscode
 interpret
+.gitignore
 *.vcxproj
 *.zip
 *.exe

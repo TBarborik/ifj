@@ -1,4 +1,10 @@
 /**
+ * Projekt - Tým 097, varianta I
+ * Autor: Tom Barbořík (xbarbo06)
+ * Generátor cílového kódu pro interpret
+ */
+
+/**
  * Generator of the three adress code (language IFJcode17).
  * Uses list of syntax trees through which iterates and
  * from each node creates a code specific to

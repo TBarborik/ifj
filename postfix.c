@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: Pavel Kaleta (xkalet05)
+ * Převedení infixového výrazu pomocí analýzi na postfixovou notaci
+ */
+
 #include "postfix.h"
 
 extern int token;
@@ -159,7 +165,7 @@ int infixToPostfix(Pexpression *expression, int flag){	// FLAG: 1: IF		2: Priraz
 	if (flag == 4 || flag == 5){
 		allowScanFlag = 0; 
 	}
-	
+
 	while(1){
 		if (allowScanFlag){
 			token = scanner();

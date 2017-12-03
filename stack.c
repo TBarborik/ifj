@@ -1,3 +1,9 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: Tom Barbořík (xbarbo06)
+ * Obecný zásobní pro ukládání a vyzvedávání hodnot (např. pro výrazy)
+ */
+
 #include "stack.h"
 
 stack stack_new()
