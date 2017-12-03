@@ -1507,8 +1507,9 @@ int expr_recurse(s_stree *node, Pexpression expr, int i) {
 			return SEMANTIC_ERROR_2;
 		}
 
-		if (left->dtype == d_string && strcmp(oper, "+") != 0) // operace pro string je pouze '+' / konkatenace
-			return SEMANTIC_ERROR_2;
+		if (left->dtype == d_string && strcmp(oper, "+") != 0) // operace pro string je pouze '+' / logicka operace
+			if (!isLoginOperation(oper))
+				return SEMANTIC_ERROR_2;
 
 		if (isLoginOperation(oper))
 			(*node)->dtype = d_bool;
@@ -1550,7 +1551,7 @@ void print_stromecek(s_stree node, int l) {
 			default: break;
 		}
 	} else if (node->ntype == n_expr) {
-		printf("> %s (e)\n", node->value.v_string);
+		printf("> %s (e -> %d)\n", node->value.v_string, node->dtype);
 	}
 
 	print_stromecek(node->rptr, l+1);

@@ -1,16 +1,28 @@
-' valid length call
+' string compare
 scope
-	dim len as integer
+	dim str1 as string
+	dim str2 as string
 
-	len = length(!"")
-	print len;
+	if str1 > str2 then
+		print 0;
+	else
+		print 1;
+	end if
 
-	len = length(!"foobar")
-	print len;
+	str1 = !"a"
+	str2 = !"b"
+	if str1 < str2 then
+		print 1;
+	else
+		print 0;
+	end if
 
-	dim str as string
-	str = !"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-	len = length(str)
-	print len;
-	
+	str1 = !"aa"
+	str2 = !"aac"
+	if str2 > str1 then
+		print 1;
+	else
+		print 0;
+	end if
+
 end scope

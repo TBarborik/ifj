@@ -413,7 +413,7 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
         *s = 1;
         target = g_tmp(*src_frame, tree->dtype);
 
-        if ((S_EQ(oper, "+") && src1->dtype != d_string) || S_EQ(oper, "-") || S_EQ(oper, "*")) {
+        if ((S_EQ(oper, "+") && src1->dtype != d_string) || S_EQ(oper, "-") || S_EQ(oper, "*") || S_EQ(oper, "=") || S_EQ(oper, ">") || S_EQ(oper, "<") || S_EQ(oper, "<>") || S_EQ(oper, "<=") || S_EQ(oper, ">=")) {
             // konstanta + proměnná přetyp na vyšší typ
             // podle konstanty
             if (src1->ntype == n_const && src1->dtype == d_double && src2->ntype == n_var) {
@@ -442,6 +442,12 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
         } else if (S_EQ(oper, ">")) {
             fprintf(out, "GT "); target->dtype = d_bool;
         } else if (S_EQ(oper, "<")) {
+            fprintf(out, "LT "); target->dtype = d_bool;
+        } else if (S_EQ(oper, "<>")) {
+            
+        } else if (S_EQ(oper, "<=")) {
+            
+        } else if (S_EQ(oper, ">=")) {
             fprintf(out, "LT "); target->dtype = d_bool;
         } else if (S_EQ(oper, "AND") || S_EQ(oper, "&&")) {
             fprintf(out, "AND "); target->dtype = d_bool;
@@ -1211,7 +1217,16 @@ void g_buildInSubStr() { // SubStr(s As String, i As Integer, n As Integer) As S
     fprintf(out, "SUB  LF@in_ss_tmp3 LF@l LF@i\n"); // in_ss_tmp3 = l - i
     fprintf(out, "DEFVAR LF@in_ss_tmp4\n");
     fprintf(out, "GT LF@in_ss_tmp4 LF@n LF@in_ss_tmp3\n");
-    fprintf(out, "JUMPIFEQ fce0_%s LF@in_ss_tmp4 bool@true\n", fcname); // n > length(s) - i => return ""
+    fprintf(out, "JUMPIFNEQ in_ss_cond0 LF@in_ss_tmp4 bool@true\n"); // n > length(s) - i
+        fprintf(out, "SUB LF@n LF@l LF@i\n");
+        fprintf(out, "ADD LF@n LF@n int@1\n");
+    fprintf(out, "LABEL in_ss_cond0\n");
+
+    fprintf(out, "LT LF@in_ss_tmp4 LF@n int@0\n");
+    fprintf(out, "JUMPIFNEQ in_ss_cond5 LF@in_ss_tmp4 bool@true\n"); // n < 0
+        fprintf(out, "SUB LF@n LF@l LF@i\n");
+        fprintf(out, "ADD LF@n LF@n int@1\n");
+    fprintf(out, "LABEL in_ss_cond5\n");
 
     fprintf(out, "DEFVAR LF@result\n");
     fprintf(out, "DEFVAR LF@result_char\n");
