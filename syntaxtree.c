@@ -104,7 +104,7 @@ s_stree STcreateVar(char *varName, e_dstype type)
 
 	if(STerror!=0)
 		return NULL;
-	if(varName==NULL || type==d_undef)
+	if(varName==NULL)
 	{
 		STerror=2;
 		return NULL;

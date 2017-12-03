@@ -11,21 +11,25 @@
 #define M_STRING_VAL 4
 #define M_END_OF_FILE 6
 #define M_AS 10
+#define M_ASC 11
 #define M_DECLARE 12
 #define M_DIM 13
 #define M_DO 14
 #define M_DOUBLE 15
 #define M_ELSE 16
 #define M_END 17
+#define M_CHR 18
 #define M_FUNCTION	19
 #define M_IF 20
 #define M_INPUT 21
 #define M_INTEGER 22
+#define M_LENGTH 23
 #define M_LOOP 24
 #define M_PRINT 25
 #define M_RETURN 26
 #define M_SCOPE 27
 #define M_STRING 28
+#define M_SUBSTR 29
 #define M_THEN 30
 #define M_WHILE 31
 #define M_EOL 46
@@ -61,7 +65,9 @@ typedef enum {
     SYNTAX_OK = 90,
     SYNTAX_ERROR = 98,
     LEX_ERROR = 99,
-    SEMANTIC_ERROR = 3,
+    SEMANTIC_ERROR_1 = 3, // typová nekompatibilita, parametry fce
+    SEMANTIC_ERROR_2 = 4, // nedefinovaná funkce/proměnná, pokus o redefinování funkce / proměnné
+    SEMANTIC_ERROR_3 = 6, // ostatní sémantika
     INFIX_TRANSFORM_ERROR = 100
 } p_status;
 

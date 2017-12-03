@@ -25,7 +25,8 @@ int removeElement(Pexpression expression, int index){
 		return -1;
 	}
 	
-	str_clear(expression->elements[index]);
+	str_del(expression->elements[index]);
+	
 	for (int i = index; i > 0; i--){
 		expression->elements[i] = expression->elements[i-1];
 		expression->types[i] = expression->types[i-1];
@@ -79,16 +80,20 @@ Pexpression initExpression(){
 		return NULL;
 	}
 	
+	expression->elements = NULL;
+	expression->types = NULL;
 	expression->number = 0;
 	return expression;
 }
 
 void addToExpr(Pexpression expression, string element, int type){
 	expression->elements = (string *) realloc(expression->elements, (expression->number + 1) * sizeof(struct str));
-	expression->types = (int *) realloc(expression->types, (expression->number + 1) * sizeof(struct str));
+	expression->types = (int *) realloc(expression->types, (expression->number + 1) * sizeof(int));
+	
 	expression->elements[expression->number] = str_new();
 	str_put(expression->elements[expression->number], str_to_array(element));
 	expression->types[expression->number] = type;
+
 	expression->number++;
 }
 
@@ -136,9 +141,11 @@ int isPossibleToken(int flag, int token){
 	}
 	else if (flag == 4 && (token == M_SEMICOLON)){
 		return POSTFIX_END;
+	} else if (flag == 4 && (token == M_EOL)) {
+		return SYNTAX_ERROR;
 	}
 
-	return r != 0 ? SEMANTIC_ERROR : POSTFIX_ERROR;		
+	return r != 0 ? SEMANTIC_ERROR_1 : POSTFIX_ERROR;		
 }
 
 int infixToPostfix(Pexpression *expression, int flag){	// FLAG: 1: IF		2: Prirazeni 	3: LOOP		4: PRINT	5: PRIRAZENI FUNC/VYRAZ
@@ -168,7 +175,7 @@ int infixToPostfix(Pexpression *expression, int flag){	// FLAG: 1: IF		2: Priraz
 		if (isPossibleToken(flag, token) == POSTFIX_END){
 			flag = 6; // Pro ukonceni vyrazu, ale aby se jeste zpracovalo, co je na zasobniku
 		}
-		else if ((r = isPossibleToken(flag, token)) == POSTFIX_ERROR || r == SEMANTIC_ERROR){
+		else if ((r = isPossibleToken(flag, token)) == POSTFIX_ERROR || r == SEMANTIC_ERROR_1 || r == SYNTAX_ERROR){
 			return r;
 		}
 		

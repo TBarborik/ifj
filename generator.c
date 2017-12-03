@@ -109,6 +109,11 @@ void g_loop_end(s_stree);
 void g_value(s_stree, int);
 void g_print(s_stree, int);
 void g_read(s_stree, int);
+void g_buildIn();
+void g_buildInLength();
+void g_buildInSubStr();
+void g_buildInAsc();
+void g_buildInChr();
 s_stree g_tmp(g_frame_level, e_dstype);
 
 
@@ -364,15 +369,18 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
             g_pop(target, 0);
         }
     } else { // vyhodnocení
-        s_stree src1 = tree->lptr; int s1 = 0;
-        s_stree src2 = tree->rptr; int s2 = 0;
+        s_stree src1 = tree->lptr; 
+        int s1 = 0;
+        s_stree src2 = tree->rptr; 
+        int s2 = 0;
         g_frame_level l1 = frame_level;
         g_frame_level l2 = frame_level;
         g_frame_level bl = frame_level;
+        char *oper = tree->value.v_string;
+
 
         if (src_frame == NULL || t_frame == 0)
             g_createTF();
-
         if (src1->ntype == n_expr) {
             src1 = g_expression(src1, &s1, &l1);
         } else if (src1->ntype == n_call) { //  nemělo by být součástí výrazů, pouze výrazu typu přiřazení
@@ -401,18 +409,27 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
         *s = 1;
         target = g_tmp(*src_frame, tree->dtype);
 
-        char *oper = tree->value.v_string;
-
         if ((S_EQ(oper, "+") && src1->dtype != d_string) || S_EQ(oper, "-") || S_EQ(oper, "*")) {
             // konstanta + proměnná přetyp na vyšší typ
             // podle konstanty
             if (src1->ntype == n_const && src1->dtype == d_double && src2->ntype == n_var) {
-                printf("cast 1\n");
+                //printf("cast 1\n");
             } else if (src2->ntype == n_const && src2->dtype == d_double && src1->ntype == n_var) { 
                 g_castif(int2float, src1, s1); 
             } else {
-                src1 = g_castif_full(int2float, src1, s1, l1, src2, s2, l2, &s1, &l1);
-                src2 = g_castif_full(int2float, src2, s2, l2, src1, s1, l1, &s2, &l2);
+                g_frame_level c_tmp_l = (loop_expr == 1) ? f_temporary : f_local;
+                s_stree c_tmp = g_tmp(c_tmp_l, d_double);
+                g_move_frames(c_tmp, c_tmp_l, 1, src1, l1, s1);
+                src1 = g_castif_full(int2float, c_tmp, 1, c_tmp_l, src2, s2, l2, &s1, &l1);
+                s1 = 1;
+                l1 = c_tmp_l;
+                
+                c_tmp = g_tmp(c_tmp_l, d_double);
+                g_move_frames(c_tmp, c_tmp_l, 1, src2, l2, s2);
+                src2 = g_castif_full(int2float, c_tmp, 1, c_tmp_l, src1, s1, l1, &s2, &l2);
+                s2 = 1;
+                l2 = c_tmp_l;
+                //src2 = g_castif_full(int2float, src2, s2, l2, src1, s1, l1, &s2, &l2);
             }
         }
 
@@ -437,23 +454,73 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
         } else if (S_EQ(oper, "*")) {            
             fprintf(out, "MUL "); target->dtype = src1->dtype;
         } else if (S_EQ(oper, "/")) {
-            if (src1->dtype == d_double && src2->dtype == d_int) src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
-            else if (src1->dtype == d_int && src2->dtype == d_double) src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
-            else { src1 = g_cast(int2float, src1, l1, s1, &l1, &s1); src2 = g_cast(int2float, src2, l2, s2, &l2, &s2); }
-            fprintf(out, "DIV "); target->dtype = d_double;
+            if (src1->dtype == d_double && src2->dtype == d_int) {
+                g_frame_level div_tmp_l = (loop_expr == 1) ? f_temporary : f_local;
+                s_stree div_tmp = g_tmp(div_tmp_l, d_double);
+                src2 = g_cast_full(int2float, div_tmp, div_tmp_l, 1, src2, l2, s2);
+                s2 = 1;
+                l2 = div_tmp_l;
+                //src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
+            }
+            else if (src1->dtype == d_int && src2->dtype == d_double) { 
+                g_frame_level div_tmp_l = (loop_expr == 1) ? f_temporary : f_local;
+                s_stree div_tmp = g_tmp(div_tmp_l, d_double);
+                src1 = g_cast_full(int2float, div_tmp, div_tmp_l, 1, src1, l1, s1);
+                s1 = 1;
+                l1 = div_tmp_l;
+                //src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
+            } else if (src1->dtype == d_int && src2->dtype == d_int) { 
+                g_frame_level div_tmp_l = (loop_expr == 1) ? f_temporary : f_local;
+                s_stree div_tmp = g_tmp(div_tmp_l, d_double);
+                src1 = g_cast_full(int2float, div_tmp, div_tmp_l, 1, src1, l1, s1);
+                s1 = 1;
+                l1 = div_tmp_l;
+
+                //src1 = g_cast(int2float, src1, l1, s1, &l1, &s1); 
+
+                div_tmp_l = (loop_expr == 1) ? f_temporary : f_local;
+                div_tmp = g_tmp(div_tmp_l, d_double);
+                src2 = g_cast_full(int2float, div_tmp, div_tmp_l, 1, src2, l2, s2);
+                s2 = 1;
+                l2 = div_tmp_l;
+                //src2 = g_cast(int2float, src2, l2, s2, &l2, &s2); 
+            }
+
+            //printf("> LOG (%s) > %d\n", oper, target->ntype);
+            fprintf(out, "DIV "); 
+            target->dtype = d_double;
         } else if (S_EQ(oper, "\\")) {
+           // printf("> LOG (%s) > %d\n", oper, src1->ntype);
+            
 
             // Pokud je některý double, zaokrouhli na int
-            if (src1->ntype == n_var) {frame_level = l1; g_castif(float2r2eint, src1, s1);} else if (src1->dtype == d_double) {src1 = g_cast(float2r2eint, src1, l1, s1, &l1, &s1);} 
-            if (src2->ntype == n_var) {frame_level = l2; g_castif(float2r2eint, src2, s2);} else if (src2->dtype == d_double) {src2 = g_cast(float2r2eint, src2, l2, s2, &l2, &s2);} 
+            if (src1->ntype == n_var) {
+                frame_level = l1; g_castif(float2r2eint, src1, s1);
+            } else if (src1->dtype == d_double) {
+                src1 = g_cast(float2r2eint, src1, l1, s1, &l1, &s1);
+            } 
+            if (src2->ntype == n_var) {
+                frame_level = l2; g_castif(float2r2eint, src2, s2);
+            } else if (src2->dtype == d_double) {
+                src2 = g_cast(float2r2eint, src2, l2, s2, &l2, &s2);
+            } 
 
             // Pro dělení, převeď na float
-            if (src1->ntype == n_var) {frame_level = l1; g_castif(int2float, src1, s1);} else if (src1->dtype == d_int) {src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);} 
-            if (src2->ntype == n_var) {frame_level = l2; g_castif(int2float, src2, s2);} else if (src2->dtype == d_int) {src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);} 
+            if (src1->ntype == n_var) {
+                frame_level = l1; g_castif(int2float, src1, s1);
+            } else if (src1->dtype == d_int) {
+                src1 = g_cast(int2float, src1, l1, s1, &l1, &s1);
+            } 
+            if (src2->ntype == n_var) {
+                frame_level = l2; g_castif(int2float, src2, s2);
+            } else if (src2->dtype == d_int) {
+                src2 = g_cast(int2float, src2, l2, s2, &l2, &s2);
+            } 
 
             fprintf(out, "DIV ");
             target->dtype = d_double;
             frame_level = *src_frame;
+            
             g_value(target, 1); fprintf(out, " ");
             frame_level = l1;
             g_value(src1, s1); fprintf(out, " ");
@@ -474,7 +541,6 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
         g_value(src2, s2); fprintf(out, "\n");
         frame_level = bl;
     }
-
     return target;
 }
 
@@ -566,7 +632,7 @@ s_stree g_cast(g_cast_type ct, s_stree dst, g_frame_level dst_l, int dst_s, g_fr
     if (target->ntype == n_const) {
         *t_l = (loop_expr == 1) ? f_temporary : f_local;
         *t_s = 1;
-        target = g_tmp(*t_l, d_undef);
+        target = g_tmp(*t_l, (ct == int2float) ? d_double : d_int);
         target_l = *t_l;
         target_s = *t_s;
         frame_level = bl;
@@ -812,6 +878,31 @@ void g_func_end(s_stree tree)
     (void) tree;
 
     if (tree != NULL) {
+        switch (fct->dtype)  {
+            case d_bool : {
+                fprintf(out, "PUSHS bool@true\n");
+                break;
+            }
+
+            case d_int: {
+                fprintf(out, "PUSHS int@0\n");
+                break;
+            }
+
+            case d_double: {
+                fprintf(out, "PUSHS float@0.0\n");
+                break;
+            }
+
+            case d_string: {
+                fprintf(out, "PUSHS string@\n");
+                break;
+            }
+
+            default: {
+
+            }
+        }
         fprintf(out, "LABEL fce_%s\n", tree->value.v_string);
     }
 
@@ -1054,6 +1145,107 @@ void g_read(s_stree tree, int system)
     fprintf(out, "\n");
 }
 
+
+void g_buildIn() {
+    g_buildInLength();
+    g_buildInSubStr();
+    g_buildInAsc();
+    g_buildInChr();
+}
+void g_buildInSubStr() {
+    char *fcname = "substr";
+    fprintf(out, "JUMP fcaf_%s\n\nLABEL fc_%s\n", fcname, fcname);
+    fprintf(out, "CREATEFRAME\n");
+    fprintf(out, "PUSHFRAME\n");
+
+    fprintf(out, "DEFVAR LF@s\n");
+    fprintf(out, "DEFVAR LF@i\n");
+    fprintf(out, "DEFVAR LF@n\n");
+    fprintf(out, "POPS LF@s\n");
+    fprintf(out, "POPS LF@i\n");
+    fprintf(out, "POPS LF@n\n");
+    
+    fprintf(out, "LABEL fce_%s\n", fcname);
+    fprintf(out, "POPFRAME\n");
+    fprintf(out, "RETURN\n");
+    fprintf(out, "LABEL fcaf_%s\n\n", fcname);
+}
+void g_buildInLength() {
+    char *fcname = "length";
+    fprintf(out, "JUMP fcaf_%s\n\nLABEL fc_%s\n", fcname, fcname);
+    fprintf(out, "CREATEFRAME\n");
+    fprintf(out, "PUSHFRAME\n");
+
+    fprintf(out, "DEFVAR LF@s\n");
+    fprintf(out, "DEFVAR LF@l\n");
+    fprintf(out, "POPS LF@s\n");
+    fprintf(out, "STRLEN LF@l LF@s\n");
+    fprintf(out, "PUSHS LF@l\n");
+
+    fprintf(out, "LABEL fce_%s\n", fcname);
+    fprintf(out, "POPFRAME\n");
+    fprintf(out, "RETURN\n");
+    fprintf(out, "LABEL fcaf_%s\n\n", fcname);
+}
+
+void g_buildInAsc() {
+    char *fcname = "asc";
+    fprintf(out, "JUMP fcaf_%s\n\nLABEL fc_%s\n", fcname, fcname);
+    fprintf(out, "CREATEFRAME\n");
+    fprintf(out, "PUSHFRAME\n");
+
+    fprintf(out, "DEFVAR LF@s\n");
+    fprintf(out, "POPS LF@s\n");
+    fprintf(out, "DEFVAR LF@i\n");
+    fprintf(out, "POPS LF@i\n");
+    fprintf(out, "DEFVAR LF@in_tmp1\n"); // typová kontrola float -> int pokud potřeba
+    fprintf(out, "TYPE LF@in_tmp1 LF@i\n");
+    fprintf(out, "JUMPIFEQ in_asc_cast1 LF@in_tmp1 string@int\n");
+        fprintf(out, "FLOAT2R2EINT LF@i LF@i\n");
+    fprintf(out, "LABEL in_asc_cast1\n");
+
+    fprintf(out, "DEFVAR LF@l\n");
+    fprintf(out, "STRLEN LF@l LF@s\n");
+    fprintf(out, "DEFVAR LF@in_asc_tmp1\n");
+    fprintf(out, "DEFVAR LF@in_asc_tmp2\n");
+    fprintf(out, "GT LF@in_asc_tmp1 LF@i LF@l\n"); // i > délka
+    fprintf(out, "LT LF@in_asc_tmp2 LF@i int@1\n"); // i < 1
+    fprintf(out, "OR LF@in_asc_tmp1 LF@in_asc_tmp1 LF@in_asc_tmp2\n"); // (i > délka) || (i < 1)
+    fprintf(out, "JUMPIFNEQ in_asc_cond1 LF@in_asc_tmp1 bool@true\n");
+        fprintf(out, "PUSHS int@0\n");
+        fprintf(out, "JUMP fce_%s\n", fcname);
+    fprintf(out, "LABEL in_asc_cond1\n");
+        fprintf(out, "SUB LF@i LF@i int@1\n");
+        fprintf(out, "STRI2INT LF@in_asc_tmp1 LF@s LF@i\n");
+        fprintf(out, "PUSHS LF@in_asc_tmp1\n");
+    fprintf(out, "LABEL fce_%s\n", fcname);
+    fprintf(out, "POPFRAME\n");
+    fprintf(out, "RETURN\n");
+    fprintf(out, "LABEL fcaf_%s\n\n", fcname);
+}
+
+void g_buildInChr() {
+    char *fcname = "chr";
+    fprintf(out, "JUMP fcaf_%s\n\nLABEL fc_%s\n", fcname, fcname);
+    fprintf(out, "CREATEFRAME\n");
+    fprintf(out, "PUSHFRAME\n");
+
+    fprintf(out, "DEFVAR LF@i\n");
+    fprintf(out, "POPS LF@i\n");
+    fprintf(out, "DEFVAR LF@in_tmp1\n"); // typová kontrola float -> int pokud potřeba
+    fprintf(out, "TYPE LF@in_tmp1 LF@i\n");
+    fprintf(out, "JUMPIFEQ in_cast1 LF@in_tmp1 string@int\n");
+    fprintf(out, "FLOAT2R2EINT LF@i LF@i\n");
+    fprintf(out, "LABEL in_cast1\n");
+    fprintf(out, "INT2CHAR LF@i LF@i\n");
+    fprintf(out, "PUSHS LF@i\n");
+
+    fprintf(out, "LABEL fce_%s\n", fcname);
+    fprintf(out, "POPFRAME\n");
+    fprintf(out, "RETURN\n");
+    fprintf(out, "LABEL fcaf_%s\n\n", fcname);
+}
+
 s_stree g_tmp(g_frame_level frame, e_dstype type) 
 {
     g_frame_level bl = frame_level;
@@ -1134,6 +1326,8 @@ int generate(s_list list, FILE *f)
     for (int i = 0; i < list->size && !g_errno; i++) {
         processTree(Lget(&list, i));
     }
+
+    g_buildIn();
 
     if (stack->top != NULL)
         g_errno = G_ERROR_STACK | G_ERROR_NOT_EMPTY;
