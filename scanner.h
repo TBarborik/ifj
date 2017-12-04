@@ -4,6 +4,9 @@
  * Skenuje jednotlivá slova a provádí lexikální analýzu
  */
 
+#ifndef H_SCANNER
+#define H_SCANNER
+
 #define START 1
 #define ID_IN 2
 #define INT_IN 3
@@ -36,3 +39,5 @@ extern int state;
 extern int symbol;
 
 int scanner();
+
+#endif

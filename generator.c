@@ -45,6 +45,7 @@ s_stree fct = NULL; // currently generated function (no nesting allowed)
 gStack stack = NULL; // conditions, loops stack (support for nesting ... no variable scope control)
 int t_frame = 0;
 int loop_expr = 0;
+int in_loop = 0;
 unsigned g_errno = 0;
 
 FILE *out;
@@ -423,9 +424,13 @@ s_stree g_expression(s_stree tree, int *s, g_frame_level *src_frame)
             // konstanta + proměnná přetyp na vyšší typ
             // podle konstanty
             if (src1->ntype == n_const && src1->dtype == d_double && src2->ntype == n_var) {
-                //printf("cast 1\n");
+                frame_level = l2;
+                g_castif(int2float, src2, s2); 
+                frame_level = bl;
             } else if (src2->ntype == n_const && src2->dtype == d_double && src1->ntype == n_var) { 
+                frame_level = l1;
                 g_castif(int2float, src1, s1); 
+                frame_level = bl;
             } else {
                 g_frame_level c_tmp_l = (loop_expr == 1) ? f_temporary : f_local;
                 s_stree c_tmp = g_tmp(c_tmp_l, d_double);
@@ -1113,6 +1118,7 @@ void g_loop(s_stree tree)
     }
 
     fprintf(out, "LABEL loopa_%d\n", cfs);
+    in_loop++;
     
     s_stree r_var = tree->rptr;
     int s = 0;
@@ -1137,7 +1143,11 @@ void g_loop_end(s_stree tree)
 
     gStackItem item = gs_top(stack);
     
-    loop_expr = 0;
+    in_loop--;
+
+    if (in_loop == 0)
+        loop_expr = 0;
+
     if (item == NULL) {
         g_errno = G_ERROR_STACK;
         return;
@@ -1485,7 +1495,7 @@ int generate(s_list list, FILE *f)
     if (stack->top != NULL)
         g_errno = G_ERROR_STACK | G_ERROR_NOT_EMPTY;
     
-    fprintf(out, "CLEARS\n");
+    //fprintf(out, "CLEARS\n");
     
     gs_destroy(stack);
 

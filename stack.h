@@ -19,9 +19,10 @@
  #define STACK_H
  
  #include <stdlib.h> // memory
+ #include "string.h" // string
 
  #ifndef STACK_TYPE
- #define STACK_TYPE void *
+ #define STACK_TYPE string
  #endif
  
  typedef struct sti {

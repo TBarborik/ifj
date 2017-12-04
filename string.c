@@ -128,8 +128,18 @@ void str_append(string s, char *arr)
 
 void str_append_char(string s, char c)
 {
-    char arr[2] = {c, '\0'};
-    str_append(s, arr);
+    string dest = s;
+    while (dest->next != NULL) dest = dest->next;
+
+    dest->arr[dest->len - 1] = c;
+    if (dest->len == STR_MAXLEN) {
+        dest->next = str_new();
+    } else {
+        dest->arr[dest->len] = '\0';
+        dest->len += 1;
+    }
+    //char arr[2] = {c, '\0'};
+    //str_append(s, arr);
 }
 
 void str_concat(string s1, string s2)

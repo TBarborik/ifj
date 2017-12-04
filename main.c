@@ -4,6 +4,7 @@
  * Hlavní soubor překladače
  */
 
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "string.h"

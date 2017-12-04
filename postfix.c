@@ -159,6 +159,11 @@ int infixToPostfix(Pexpression *expression, int flag){	// FLAG: 1: IF		2: Priraz
 	stack exprStack;
 	exprStack = stack_new();
 	*expression = initExpression();
+
+	
+	int wasOperator = 1;
+	int parenthese = 0;
+	int start = 1;
 	
 	int allowScanFlag = 1;
 	
@@ -189,17 +194,31 @@ int infixToPostfix(Pexpression *expression, int flag){	// FLAG: 1: IF		2: Priraz
 			while (!stack_empty(exprStack)){
 				addToExpr(*expression, stack_pop(exprStack), 0);
 			}
+
+			if (parenthese != 0 || (start == 0 && wasOperator == 1))
+				return SYNTAX_ERROR;
+
 			break;
 		}
 		else if (!isOperator(token) && token != M_LEFT_PARANTHESE && token != M_RIGHT_PARANTHESE){
+			if (wasOperator == 0)
+				return SYNTAX_ERROR;
+
+			wasOperator = 0;
 			addToExpr(*expression, detail, token);
 		}
 		else if (token == M_LEFT_PARANTHESE){
 			string tmp = str_new();
 			str_put(tmp, "(");
 			stack_push(exprStack, tmp);
+			parenthese++;
 		}
 		else if(isOperator(token)){
+			if (wasOperator == 1) {
+				return SYNTAX_ERROR;
+			}
+
+			wasOperator = 1;
 
 			while (1){
 	
@@ -236,10 +255,12 @@ int infixToPostfix(Pexpression *expression, int flag){	// FLAG: 1: IF		2: Priraz
 			while (!stack_empty(exprStack) && (str_cmp((tmp = stack_pop(exprStack)), tmp2) != 0)){
 				addToExpr(*expression, tmp, 0);
 			}
-			str_clear(tmp);
-			str_clear(tmp2);
+			str_del(tmp);
+			str_del(tmp2);
+			parenthese--;
 		}
 		
+		start = 0;
 	}
 	
 	return POSTFIX_OK;

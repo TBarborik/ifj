@@ -52,13 +52,12 @@
 #define M_MORE_EQUAL 45
 #define M_LESS_EQUAL 43
 
-#define STACK_TYPE string
 #define POSTFIX_OK 80
 
 //TODO-Doplnit správné include
 #include <stdio.h>
 #include "string.h"
-#include "postfix.h"
+#include "precedence.h"
 #include "symtable.h"
 #include "syntaxtree.h"
 #include "scanner.h"
@@ -235,11 +234,6 @@ int func_stat_else();
 */
 int func_stat_ret();
 
-/**
-*	Funkce zpracující výrazy a určující pořadí jejich vyhodnocení
-*	@return Kód propagující syntaktickou správnost či chybu
-*/
-int prec_analyse();
 
 /**
 *	Hlavní volání syntaktického analyzátoru
