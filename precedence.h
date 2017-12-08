@@ -1,3 +1,8 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: Pavel Kaleta (xkalet05)
+ */
+
 #ifndef H_PRECEDENCE
 #define H_PRECEDENCE
 

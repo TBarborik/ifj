@@ -1,7 +1,7 @@
 /**
  * Projekt - Tým 097, varianta I
  * Autor: Pavel Kaleta (xkalet05)
- * Převedení infixového výrazu pomocí analýzi na postfixovou notaci
+ * Převedení infixového výrazu pomocí analýzy na postfixovou notaci
  */
 
 #include "postfix.h"

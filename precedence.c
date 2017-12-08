@@ -1,3 +1,8 @@
+/**
+ * Projekt - Tým 097, varianta I
+ * Autor: Pavel Kaleta (xkalet05)
+ */
+
 #include "precedence.h"
 
 int tokenToPrecIndex(int token){
@@ -79,7 +84,8 @@ int stringToPrecIndex(string str){
 	
 }
 
-string rule_exist(string prava_strana){ //TODO
+// Deprecated
+string rule_exist(string prava_strana){
 	(void) prava_strana;
 	return NULL;
 }
@@ -113,9 +119,10 @@ int prec_analyse(Pexpression *expression, int flag){
 	stack_push(pStack, tmp_at); // Dno zasobniku
 	int allowScanFlag = 1; // Pomocny flag pro zjisteni, zda uz byl nacten token v predchozim kroku
 	
-	if (flag == 4 || flag == 5){ // Pomocny flag pro spravne ukonceni vyrazu
+	if (flag == 4 || flag == 5 || allowScanFlag){ // Pomocny flag pro spravne ukonceni vyrazu
 		allowScanFlag = 0; 
-	} return infixToPostfix(expression, flag);
+		return infixToPostfix(expression, flag);
+	} 
 	while (1){
 		if (allowScanFlag){
 			token = scanner();
@@ -139,13 +146,13 @@ int prec_analyse(Pexpression *expression, int flag){
 			}
 			case '<': {
 				string prec_l = str_new();
-				str_append(prec_l, "PREC<");
+				str_append(prec_l, "@<");
 				stack_push(pStack, prec_l);
 				break;
 			}
 			case '>': {
 				string tmp = stack_pop(pStack); // Prava strana pravidla
-				if (strcmp("PREC<", str_to_array(stack_pop(pStack))) == 0){ // Pred pravou stranou je PREC<
+				if (strcmp("@<", str_to_array(stack_pop(pStack))) == 0){ // Pred pravou stranou je @<
 					string leva_strana = rule_exist(tmp); // Existuje pravidlo s pravou stranou tmp ? Pokud ano, vrati redukovanou (levou) stranu
 					if (!leva_strana){
 						return SYNTAX_ERROR;

@@ -587,11 +587,18 @@ int scanner(){
 					break;
 				}
 				
-				else if (c == 9 || c == 10 || c == 11 || c == 12 || c == 13	|| c == 32){
+				else if (c == 9 || c == 11 || c == 12 || c == 13 || c == 32){
 					state = START;
 					str_append_char(detail, '<');
 					id = 5;
 					break;
+				}
+
+				else if (c == '\n') {
+					state = NEWLINE;
+					str_append_char(detail, '<');
+					symbol = c;
+					id = 5;
 				}
 				
 				else if (c == EOF){
@@ -619,11 +626,18 @@ int scanner(){
 					break;
 				}
 				
-				else if (c == 9 || c == 10 || c == 11 || c == 12 || c == 13	|| c == 32){
+				else if (c == 9 || c == 11 || c == 12 || c == 13	|| c == 32){
 					state = START;
 					str_append_char(detail, '>');
 					id = 5;
 					break;
+				}
+				
+				else if (c == '\n') {
+					state = NEWLINE;
+					str_append_char(detail, '>');
+					symbol = c;
+					id = 5;
 				}
 				
 				else if (c == EOF){
